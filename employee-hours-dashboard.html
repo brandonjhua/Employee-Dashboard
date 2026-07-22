@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Employee Hours Dashboard</title>
+<style>
+  :root{
+    --purple:#5b5b8c;
+    --purple-dark:#46466b;
+    --gold:#c9a86a;
+    --gold-light:#e9dcbe;
+    --av:#dfe0f5;
+    --lf:#d9ecd4;
+    --ln:#f4ecd8;
+    --mvs:#d6e7f5;
+    --border:#c7c7d6;
+    --text:#22222e;
+  }
+  *{box-sizing:border-box;}
+  html{
+    background:linear-gradient(135deg, #eceffb 0%, #f8f2e9 45%, #e9f5f0 100%) fixed;
+  }
+  body{
+    font-family:'Segoe UI', Arial, Helvetica, sans-serif;
+    margin:0;
+    min-height:100vh;
+    padding:32px;
+    background:transparent;
+    color:var(--text);
+  }
+  .page{
+    max-width:1600px;
+    margin:0 auto;
+  }
+  h1{
+    font-size:30px;
+    margin:0 0 8px 0;
+    color:var(--purple-dark);
+    letter-spacing:.2px;
+    text-align:center;
+  }
+  h1::before{
+    content:'';
+    display:inline-block;
+    width:12px;height:12px;
+    border-radius:3px;
+    margin-right:9px;
+    background:linear-gradient(135deg, var(--gold), var(--purple));
+    vertical-align:2px;
+  }
+  .subtitle{
+    color:#5a5a6e;
+    font-size:13px;
+    margin-bottom:22px;
+    max-width:920px;
+    line-height:1.5;
+  }
+  .panel{
+    background:#ffffff;
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:20px;
+    margin-bottom:20px;
+    box-shadow:0 3px 14px rgba(70,70,107,0.08);
+  }
+  details.panel summary{
+    cursor:pointer;
+    font-weight:600;
+    color:var(--purple-dark);
+    outline:none;
+  }
+  details.panel[open] summary{margin-bottom:14px;}
+  #dropzone{
+    border:2px dashed #b3b3d9;
+    border-radius:12px;
+    padding:30px;
+    text-align:center;
+    color:#444;
+    background:linear-gradient(180deg, #fcfcff, #f4f4fc);
+    cursor:pointer;
+    transition:background .15s, border-color .15s, transform .1s;
+  }
+  #dropzone:hover{
+    border-color:var(--purple);
+    background:linear-gradient(180deg, #f4f4ff, #ecebfb);
+  }
+  #dropzone.drag{
+    background:linear-gradient(180deg, #eaeaff, #e2e1fb);
+    border-color:var(--purple);
+    transform:scale(1.005);
+  }
+  #dropzone strong{color:var(--purple-dark);}
+  #fileInput{display:none;}
+  .filelist{
+    margin-top:14px;
+    font-size:13px;
+  }
+  .filelist table{width:100%;border-collapse:collapse;}
+  .filelist td, .filelist th{padding:5px 8px;border-bottom:1px solid #eee;text-align:left;}
+  .filelist th{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.03em;}
+  .filelist .rm, .merge-list .rm{
+    color:#a33;
+    cursor:pointer;
+    font-weight:bold;
+    padding:0 8px;
+    white-space:nowrap;
+  }
+  .filelist tr.inactive td{color:#aaa;font-style:italic;}
+  .toolbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:12px;
+    font-size:13px;
+    color:#555;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .toolbar button{
+    background:linear-gradient(135deg, var(--purple), var(--purple-dark));
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    padding:7px 14px;
+    cursor:pointer;
+    font-size:12px;
+    box-shadow:0 2px 6px rgba(70,70,107,0.28);
+    transition:transform .1s, box-shadow .1s;
+  }
+  .toolbar button:hover{
+    transform:translateY(-1px);
+    box-shadow:0 4px 10px rgba(70,70,107,0.38);
+  }
+  .toolbar button.secondary{
+    background:#e4e4ee;
+    color:#444;
+    box-shadow:none;
+  }
+  .toolbar button.secondary:hover{
+    background:#d7d7e6;
+    box-shadow:none;
+  }
+  #status{
+    font-size:13px;
+    margin-top:8px;
+    white-space:pre-line;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  #status.error{color:#a33;}
+  #status.ok{color:#2a7a3d;}
+  .spinner{
+    width:13px;height:13px;
+    border:2px solid #ccc;
+    border-top-color:var(--purple);
+    border-radius:50%;
+    animation:spin .7s linear infinite;
+    display:inline-block;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .legend{
+    font-size:12.5px;
+    color:#4a4a5a;
+    line-height:1.7;
+    border-left:4px solid var(--gold);
+    padding-left:16px;
+  }
+  .legend b{color:#222;}
+  .dq-panel{
+    font-size:12.5px;
+    color:#4a4a5a;
+    line-height:1.7;
+    border-left:4px solid #c96a6a;
+    padding-left:16px;
+  }
+  .dq-panel b{color:#7a2b2b;}
+  .dq-panel ul{margin:6px 0 0 0;padding-left:18px;}
+  .rules-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));
+    gap:10px 16px;
+    font-size:13px;
+  }
+  .rule-row{display:flex;flex-direction:column;gap:4px;}
+  .rule-row label{font-size:11px;font-weight:700;color:var(--purple-dark);letter-spacing:.03em;}
+  .rule-row input{
+    padding:6px 8px;
+    border:1px solid var(--border);
+    border-radius:6px;
+    font-size:12.5px;
+    font-family:inherit;
+  }
+  .rules-actions{margin-top:14px;display:flex;gap:10px;}
+  .rules-note{font-size:12px;color:#777;margin-top:10px;}
+  .merge-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    font-size:13px;
+  }
+  .merge-row input[type="text"]{
+    padding:6px 8px;
+    border:1px solid var(--border);
+    border-radius:6px;
+    font-size:12.5px;
+    font-family:inherit;
+    min-width:200px;
+    max-width:240px;
+  }
+  .merge-list{margin-top:12px;font-size:13px;}
+  .merge-list table{width:100%;border-collapse:collapse;}
+  .merge-list td{padding:5px 8px;border-bottom:1px solid #eee;}
+  .filter-row{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  #searchInput{
+    padding:7px 10px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-size:13px;
+    min-width:220px;
+    font-family:inherit;
+  }
+  .clinic-filters{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:#444;}
+  .clinic-chk{display:inline-flex;align-items:center;gap:5px;cursor:pointer;}
+  .swatch{
+    display:inline-block;
+    width:11px;height:11px;
+    border-radius:2px;
+    margin-right:5px;
+    vertical-align:-1px;
+  }
+  .tablewrap{
+    overflow-x:auto;
+    overflow-y:hidden;
+    border:1px solid var(--border);
+    border-radius:14px;
+    background:#fff;
+    box-shadow:0 4px 18px rgba(70,70,107,0.10);
+  }
+  table.main{
+    border-collapse:separate;
+    border-spacing:0;
+    font-size:12px;
+    min-width:100%;
+  }
+  table.main th, table.main td{
+    padding:5px 7px;
+    border:1px solid var(--border);
+    white-space:nowrap;
+    text-align:right;
+  }
+  table.main th{
+    background:var(--purple);
+    color:#fff;
+    font-weight:600;
+    text-align:center;
+    vertical-align:bottom;
+  }
+  table.main th.sortable{
+    cursor:pointer;
+    user-select:none;
+  }
+  table.main th.sortable:hover{
+    background:var(--purple-dark);
+  }
+  table.main th.grp-enh{background:var(--gold);color:#3a2f10;}
+  table.main td.left, table.main th.left{text-align:left;}
+  table.main td.name, table.main th.name{
+    text-align:left;
+    position:sticky;
+    left:0;
+    width:150px;
+    min-width:150px;
+    max-width:150px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    background:#fff;
+    z-index:2;
+  }
+  table.main td.clinic, table.main th.clinic{
+    text-align:left;
+    position:sticky;
+    left:150px;
+    width:60px;
+    min-width:60px;
+    max-width:60px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    background:#fff;
+    z-index:2;
+  }
+  table.main th.name, table.main th.clinic{background:var(--purple-dark);z-index:3;}
+  table.main td.emp-link{
+    cursor:pointer;
+    text-decoration:underline;
+    text-decoration-style:dotted;
+    text-decoration-color:#999;
+  }
+  table.main td.emp-link:hover{color:var(--purple-dark);background:#f0f0fb;}
+  tr.AV td.clinic, tr.AV td.name{background:var(--av);}
+  tr.LF td.clinic, tr.LF td.name{background:var(--lf);}
+  tr.LN td.clinic, tr.LN td.name{background:var(--ln);}
+  tr.MVS td.clinic, tr.MVS td.name{background:var(--mvs);}
+  tr.AV{background:var(--av);}
+  tr.LF{background:var(--lf);}
+  tr.LN{background:var(--ln);}
+  tr.MVS{background:var(--mvs);}
+  tr.totals td{
+    background:#e8e8f0;
+    font-weight:bold;
+    position:sticky;
+    bottom:0;
+  }
+  tr.totals td.name, tr.totals td.clinic{background:#dcdce8;}
+  td.blank{color:#bbb;}
+  td.computed{font-weight:600;}
+  .empty-state{
+    padding:40px;
+    text-align:center;
+    color:#888;
+    font-size:13px;
+  }
+
+  .modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(30,30,45,0.55);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+    padding:24px;
+  }
+  .modal{
+    background:#fff;
+    border-radius:14px;
+    max-width:900px;
+    width:100%;
+    max-height:88vh;
+    display:flex;
+    flex-direction:column;
+    box-shadow:0 12px 40px rgba(0,0,0,0.3);
+  }
+  .modal-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:16px 20px;
+    border-bottom:1px solid var(--border);
+  }
+  .modal-header h2{margin:0;font-size:18px;color:var(--purple-dark);}
+  .modal-close{
+    background:none;
+    border:none;
+    font-size:22px;
+    line-height:1;
+    cursor:pointer;
+    color:#888;
+    padding:4px 8px;
+  }
+  .modal-close:hover{color:#222;}
+  #modalChart{padding:14px 20px 0 20px;}
+  .chart-empty{color:#888;font-size:13px;padding:10px 0;}
+  .modal-body{
+    padding:14px 20px 20px 20px;
+    overflow:auto;
+  }
+  table.detail-table{
+    border-collapse:collapse;
+    width:100%;
+    font-size:12px;
+  }
+  table.detail-table th, table.detail-table td{
+    padding:5px 8px;
+    border:1px solid #eee;
+    text-align:left;
+    white-space:nowrap;
+  }
+  table.detail-table th{background:#f2f2f8;position:sticky;top:0;}
+  table.detail-table tr.excluded td{color:#aaa;font-style:italic;}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+<h1>Employee Hours Dashboard</h1>
+<div class="subtitle">Drop in one or more "Employee Hours Service Detail" exports — the table below fills in whatever those reports actually contain, and leaves the rest blank. Files you load are saved in this browser, so the table is still here next time you open this page.</div>
+
+<div class="panel">
+  <div id="dropzone">
+    <div><strong>Drop .xlsx report files here</strong>, or click to choose files</div>
+    <div style="font-size:12px;color:#777;margin-top:4px;">Each file is one period (e.g. a month). Uncheck a file below to leave it out of the current view.</div>
+    <input type="file" id="fileInput" accept=".xlsx" multiple>
+  </div>
+  <div class="filelist" id="fileList"></div>
+  <div class="toolbar">
+    <span id="rangeInfo"></span>
+    <button id="clearBtn">Clear all</button>
+  </div>
+  <div id="status"></div>
+</div>
+
+<div class="panel legend" id="legend" style="display:none;">
+  <b>This table only includes columns these reports actually support</b> — no blank placeholder columns. Role and Hire Date come straight from the report. Units/Week, Total Service Hours, Service Revenue, Client Visits, Unique Clients, Requested %, Canceled, and No Show are all totalled per employee (excluding canceled/no-show lines except for the Canceled/No Show counts themselves, which count them). CHEM / MICRO / LED / DERM / OXY / ZDPEEL / HYDRA are counted by matching each line's Service Type / Description / Code against the keyword rules below — a best-effort estimate, worth spot-checking. Click any employee's name to see their raw lines and a per-period chart.
+</div>
+
+<div class="panel dq-panel" id="dqPanel" style="display:none;"></div>
+
+<details class="panel" id="rulesPanel">
+  <summary>Enhancement category keyword rules</summary>
+  <div class="rules-grid" id="rulesGrid"></div>
+  <div class="rules-actions">
+    <button id="saveRulesBtn">Save rules</button>
+    <button id="resetRulesBtn" class="secondary">Reset to defaults</button>
+  </div>
+  <div class="rules-note">Comma-separated words/phrases matched (whole-word) against each service line's Type + Description + Code, case-insensitive. Saved in this browser and applied the next time the table is built.</div>
+</details>
+
+<details class="panel" id="mergePanel">
+  <summary>Merge duplicate employees</summary>
+  <div class="rules-note" style="margin-top:0;">If the same person shows up under two names (typo, missing middle name, etc.), merge them here — their stats combine under the name you keep.</div>
+  <div class="merge-row">
+    <input type="text" id="mergeFromInput" list="employeeNamesList" placeholder="Type a name to merge…" autocomplete="off">
+    <span>&rarr;</span>
+    <input type="text" id="mergeToInput" list="employeeNamesList" placeholder="Type the name to keep…" autocomplete="off">
+    <datalist id="employeeNamesList"></datalist>
+    <button id="mergeBtn">Merge</button>
+  </div>
+  <div class="merge-list" id="mergeList"></div>
+</details>
+
+<div class="panel" id="filterPanel" style="display:none;">
+  <div class="filter-row">
+    <input type="text" id="searchInput" placeholder="Search employee name…">
+    <div class="clinic-filters" id="clinicFilters"></div>
+    <button id="exportCsvBtn">Export CSV</button>
+  </div>
+</div>
+
+<div class="tablewrap">
+  <table class="main" id="mainTable"></table>
+</div>
+
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle"></h2>
+      <button class="modal-close" id="modalClose">&times;</button>
+    </div>
+    <div id="modalChart"></div>
+    <div class="modal-body">
+      <table class="detail-table" id="modalTable"></table>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+
+/* ---------------- Web Worker: ZIP + XLSX sheet parsing ---------------- */
+/* Runs off the main thread so large report files don't freeze the page. */
+
+const WORKER_SRC = `
+async function unzip(arrayBuffer){
+  const view = new DataView(arrayBuffer);
+  const bytes = new Uint8Array(arrayBuffer);
+  const EOCD_SIG = 0x06054b50;
+  let eocd = -1;
+  const scanStart = Math.max(0, bytes.length - 22 - 65557);
+  for (let i = bytes.length - 22; i >= scanStart; i--){
+    if (view.getUint32(i, true) === EOCD_SIG){ eocd = i; break; }
+  }
+  if (eocd === -1) throw new Error('Not a valid .xlsx/zip file (no End Of Central Directory record found).');
+
+  const entryCount = view.getUint16(eocd + 10, true);
+  const cdOffset = view.getUint32(eocd + 16, true);
+
+  const entries = {};
+  let ptr = cdOffset;
+  for (let i = 0; i < entryCount; i++){
+    const sig = view.getUint32(ptr, true);
+    if (sig !== 0x02014b50) throw new Error('Corrupt zip central directory.');
+    const method = view.getUint16(ptr + 10, true);
+    const compSize = view.getUint32(ptr + 20, true);
+    const nameLen = view.getUint16(ptr + 28, true);
+    const extraLen = view.getUint16(ptr + 30, true);
+    const commentLen = view.getUint16(ptr + 32, true);
+    const localOffset = view.getUint32(ptr + 42, true);
+    const nameBytes = bytes.subarray(ptr + 46, ptr + 46 + nameLen);
+    const name = new TextDecoder('utf-8').decode(nameBytes);
+    entries[name] = { method, compSize, localOffset };
+    ptr += 46 + nameLen + extraLen + commentLen;
+  }
+
+  async function extract(name){
+    const e = entries[name];
+    if (!e) return null;
+    const lh = e.localOffset;
+    if (view.getUint32(lh, true) !== 0x04034b50) throw new Error('Corrupt zip local header for ' + name);
+    const nameLen = view.getUint16(lh + 26, true);
+    const extraLen = view.getUint16(lh + 28, true);
+    const dataStart = lh + 30 + nameLen + extraLen;
+    const compData = bytes.subarray(dataStart, dataStart + e.compSize);
+    if (e.method === 0) return compData;
+    if (e.method === 8){
+      if (typeof DecompressionStream === 'undefined'){
+        throw new Error('This browser cannot decompress .xlsx files (DecompressionStream unsupported). Use a recent Chrome, Edge, or Firefox.');
+      }
+      const ds = new DecompressionStream('deflate-raw');
+      const writer = ds.writable.getWriter();
+      writer.write(compData);
+      writer.close();
+      const out = await new Response(ds.readable).arrayBuffer();
+      return new Uint8Array(out);
+    }
+    throw new Error('Unsupported zip compression method: ' + e.method);
+  }
+
+  return { names: Object.keys(entries), extract };
+}
+
+async function extractText(zip, name){
+  const b = await zip.extract(name);
+  if (!b) return null;
+  return new TextDecoder('utf-8').decode(b);
+}
+
+self.onmessage = async function(e){
+  const { id, arrayBuffer, fileName } = e.data;
+  try {
+    const zip = await unzip(arrayBuffer);
+    let sheetPath = zip.names.find(n => n === 'xl/worksheets/sheet1.xml');
+    if (!sheetPath) sheetPath = zip.names.find(n => /^xl\\/worksheets\\/sheet\\d+\\.xml$/.test(n));
+    if (!sheetPath) throw new Error('No worksheet found inside "' + fileName + '".');
+
+    let sharedStringsXml = null;
+    if (zip.names.includes('xl/sharedStrings.xml')){
+      sharedStringsXml = await extractText(zip, 'xl/sharedStrings.xml');
+    }
+    const sheetXml = await extractText(zip, sheetPath);
+    self.postMessage({ id, sheetXml, sharedStringsXml });
+  } catch (err){
+    self.postMessage({ id, error: err.message });
+  }
+};
+`;
+/* DOMParser isn't available inside Web Workers in this browser, so the worker only
+   does the heavy unzip/decompression (pure byte work); the DOM-based XML parsing
+   below runs on the main thread, which is fast once the raw text is already in hand. */
+
+function parseSharedStrings(xmlText){
+  if (!xmlText) return [];
+  const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+  return Array.from(doc.getElementsByTagName('si')).map(si => si.textContent || '');
+}
+
+function colLetters(ref){
+  const m = /^[A-Z]+/.exec(ref);
+  return m ? m[0] : '';
+}
+
+function parseSheetRows(xmlText, sharedStrings){
+  const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+  const rows = doc.getElementsByTagName('row');
+  const out = [];
+  for (const row of rows){
+    const rowObj = {};
+    let any = false;
+    for (const c of row.getElementsByTagName('c')){
+      const ref = c.getAttribute('r');
+      if (!ref) continue;
+      const col = colLetters(ref);
+      const type = c.getAttribute('t');
+      let val = '';
+      if (type === 'inlineStr'){
+        const is = c.getElementsByTagName('is')[0];
+        val = is ? (is.textContent || '') : '';
+      } else if (type === 's'){
+        const v = c.getElementsByTagName('v')[0];
+        const idx = v ? parseInt(v.textContent, 10) : -1;
+        val = (sharedStrings && sharedStrings[idx] !== undefined) ? sharedStrings[idx] : '';
+      } else {
+        const v = c.getElementsByTagName('v')[0];
+        val = v ? v.textContent : '';
+      }
+      rowObj[col] = val;
+      if (val !== '') any = true;
+    }
+    if (any) out.push(rowObj);
+  }
+  return out;
+}
+
+const EXPECTED_HEADERS = ['Location','Employee','Service Hours','Service Qty','Service Revenue'];
+
+function findHeaderRow(rows){
+  for (let i = 0; i < rows.length; i++){
+    const vals = Object.values(rows[i]).map(v => (v || '').trim());
+    let hits = 0;
+    for (const h of EXPECTED_HEADERS) if (vals.includes(h)) hits++;
+    if (hits >= 4) return i;
+  }
+  return -1;
+}
+
+function buildRecordsFromSheetXml(sheetXml, sharedStringsXml, fileName){
+  const sharedStrings = sharedStringsXml ? parseSharedStrings(sharedStringsXml) : [];
+  const rows = parseSheetRows(sheetXml, sharedStrings);
+
+  const headerIdx = findHeaderRow(rows);
+  if (headerIdx === -1) throw new Error('"' + fileName + '" doesn\'t look like an Employee Hours Service Detail export (expected columns not found).');
+
+  const colField = {};
+  for (const [col, val] of Object.entries(rows[headerIdx])){
+    const v = (val || '').trim();
+    if (v) colField[col] = v;
+  }
+
+  const records = [];
+  for (let i = headerIdx + 1; i < rows.length; i++){
+    const raw = rows[i];
+    const rec = {};
+    for (const [col, field] of Object.entries(colField)){
+      rec[field] = raw[col] !== undefined ? raw[col] : '';
+    }
+    if (rec['Employee'] && rec['Employee'].trim()) records.push(rec);
+  }
+  return records;
+}
+
+let worker = null;
+let workerReqId = 0;
+const workerCallbacks = new Map();
+
+function getWorker(){
+  if (worker) return worker;
+  const blob = new Blob([WORKER_SRC], { type: 'application/javascript' });
+  worker = new Worker(URL.createObjectURL(blob));
+  worker.onmessage = (e) => {
+    const { id, sheetXml, sharedStringsXml, error } = e.data;
+    const cb = workerCallbacks.get(id);
+    if (!cb) return;
+    workerCallbacks.delete(id);
+    if (error) cb.reject(new Error(error)); else cb.resolve({ sheetXml, sharedStringsXml });
+  };
+  worker.onerror = (e) => {
+    workerCallbacks.forEach(cb => cb.reject(new Error('Worker crashed: ' + e.message)));
+    workerCallbacks.clear();
+  };
+  return worker;
+}
+
+function parseInWorker(file){
+  return new Promise(async (resolve, reject) => {
+    try {
+      const buf = await file.arrayBuffer();
+      const w = getWorker();
+      const id = ++workerReqId;
+      workerCallbacks.set(id, { resolve, reject });
+      w.postMessage({ id, arrayBuffer: buf, fileName: file.name }, [buf]);
+    } catch (err){ reject(err); }
+  });
+}
+
+/* ---------------- Shared helpers ---------------- */
+
+function parseServiceDate(s){
+  if (!s) return null;
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s.trim());
+  if (!m) return null;
+  return new Date(Number(m[3]), Number(m[1]) - 1, Number(m[2]));
+}
+
+function truthy01(v){
+  return v === '1' || v === 1 || (typeof v === 'string' && v.trim() === '1');
+}
+
+function excelSerialToDate(serial){
+  if (serial === undefined || serial === null || serial === '') return null;
+  const n = parseFloat(serial);
+  if (!isFinite(n)) return null;
+  return new Date(Date.UTC(1899, 11, 30) + n * 86400000);
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function escapeXml(s){
+  return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+}
+
+const CLINIC_MAP = {
+  'Aliso Viejo': 'AV',
+  'Lake Forest': 'LF',
+  'Laguna Niguel Plaza': 'LN',
+  'Mission Viejo South': 'MVS'
+};
+
+function clinicName(location){
+  return (location || '').replace(/\s*\(\d+\)\s*$/, '').trim();
+}
+
+function clinicAbbrev(location){
+  const name = clinicName(location);
+  if (CLINIC_MAP[name]) return CLINIC_MAP[name];
+  if (!name) return '';
+  return name.split(/\s+/).map(w => w[0]).join('').toUpperCase();
+}
+
+function isKnownClinic(location){
+  const name = clinicName(location);
+  return !name || !!CLINIC_MAP[name];
+}
+
+/* ---------------- Enhancement categorization (user-editable) ---------------- */
+
+const CATEGORY_ORDER = ['hydra','micro','derm','zdpeel','chem','oxy','led'];
+const DEFAULT_CATEGORY_RULES = {
+  hydra: ['hydrafacial', 'hydra'],
+  micro: ['microderm', 'micro'],
+  derm: ['dermaplan', 'derma'],
+  zdpeel: ['zero downtime', 'zdp'],
+  chem: ['chemical peel', 'chem'],
+  oxy: ['oxygen', 'oxygenating'],
+  led: ['led']
+};
+
+function loadCategoryRules(){
+  try {
+    const raw = localStorage.getItem('enhCategoryRules');
+    if (raw){
+      const parsed = JSON.parse(raw);
+      const merged = {};
+      for (const cat of CATEGORY_ORDER) merged[cat] = Array.isArray(parsed[cat]) ? parsed[cat] : DEFAULT_CATEGORY_RULES[cat];
+      return merged;
+    }
+  } catch(e){ console.warn('Could not read saved category rules:', e); }
+  return JSON.parse(JSON.stringify(DEFAULT_CATEGORY_RULES));
+}
+
+let categoryRules = loadCategoryRules();
+
+function saveCategoryRules(rules){
+  categoryRules = rules;
+  try { localStorage.setItem('enhCategoryRules', JSON.stringify(rules)); } catch(e){ console.warn('Could not save category rules:', e); }
+}
+
+function escapeRegExp(s){
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function categorize(type, desc, code){
+  const text = ((type||'') + ' ' + (desc||'') + ' ' + (code||'')).toLowerCase();
+  for (const cat of CATEGORY_ORDER){
+    const kws = categoryRules[cat] || [];
+    for (const kw of kws){
+      if (!kw) continue;
+      const re = new RegExp('\\b' + escapeRegExp(kw.toLowerCase().trim()) + '\\b');
+      if (re.test(text)) return cat;
+    }
+  }
+  return null;
+}
+
+function renderRulesPanel(){
+  const grid = document.getElementById('rulesGrid');
+  grid.innerHTML = '';
+  for (const cat of CATEGORY_ORDER){
+    const row = document.createElement('div');
+    row.className = 'rule-row';
+    const label = document.createElement('label');
+    label.textContent = cat.toUpperCase();
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.dataset.cat = cat;
+    input.value = (categoryRules[cat] || []).join(', ');
+    row.appendChild(label);
+    row.appendChild(input);
+    grid.appendChild(row);
+  }
+}
+
+/* ---------------- Duplicate-employee merging (user-editable) ---------------- */
+
+function loadEmployeeAliases(){
+  try {
+    const raw = localStorage.getItem('employeeAliases');
+    if (raw) return JSON.parse(raw);
+  } catch(e){ console.warn('Could not read saved employee merges:', e); }
+  return {};
+}
+
+let employeeAliases = loadEmployeeAliases();
+
+function saveEmployeeAliases(){
+  try { localStorage.setItem('employeeAliases', JSON.stringify(employeeAliases)); } catch(e){ console.warn('Could not save employee merges:', e); }
+}
+
+function resolveEmployeeName(name){
+  let current = (name || '').trim();
+  const seen = new Set();
+  while (employeeAliases[current] && !seen.has(current)){
+    seen.add(current);
+    current = employeeAliases[current];
+  }
+  return current;
+}
+
+function getAllRawEmployeeNames(){
+  const names = new Set();
+  for (const f of state.files){
+    for (const r of f.records){
+      const n = (r['Employee'] || '').trim();
+      if (n) names.add(n);
+    }
+  }
+  return Array.from(names).sort();
+}
+
+function renderMergePanel(){
+  const names = getAllRawEmployeeNames();
+  document.getElementById('employeeNamesList').innerHTML =
+    names.map(n => '<option value="' + escapeHtml(n) + '"></option>').join('');
+
+  const listEl = document.getElementById('mergeList');
+  const entries = Object.entries(employeeAliases);
+  if (!entries.length){
+    listEl.innerHTML = '<div class="rules-note" style="margin-top:8px;">No merges yet.</div>';
+    return;
+  }
+  listEl.innerHTML = '<table>' + entries.map(([from, to]) =>
+    '<tr><td>' + escapeHtml(from) + ' &rarr; ' + escapeHtml(to) + '</td><td class="rm" data-from="' + escapeHtml(from) + '">&times; undo</td></tr>'
+  ).join('') + '</table>';
+  listEl.querySelectorAll('.rm').forEach(btn => {
+    btn.addEventListener('click', () => {
+      delete employeeAliases[btn.dataset.from];
+      saveEmployeeAliases();
+      renderMergePanel();
+      recompute();
+    });
+  });
+}
+
+/* ---------------- Aggregation ---------------- */
+
+function aggregate(allRecords){
+  let globalMin = null, globalMax = null;
+  for (const r of allRecords){
+    const d = parseServiceDate(r['Service Date']);
+    if (d){
+      if (!globalMin || d < globalMin) globalMin = d;
+      if (!globalMax || d > globalMax) globalMax = d;
+    }
+  }
+  let weeks = 1;
+  if (globalMin && globalMax){
+    const days = Math.round((globalMax - globalMin) / 86400000) + 1;
+    weeks = Math.max(days / 7, 1/7);
+  }
+
+  const byEmployee = new Map();
+  for (const r of allRecords){
+    const emp = resolveEmployeeName(r['Employee']);
+    if (!emp) continue;
+    if (!byEmployee.has(emp)){
+      byEmployee.set(emp, {
+        employee: emp,
+        location: r['Location'] || '',
+        classification: '',
+        hireDateRaw: '',
+        serviceHours: 0,
+        serviceQty: 0,
+        serviceRevenue: 0,
+        rawCount: 0,
+        canceledCount: 0,
+        noShowCount: 0,
+        requestedCount: 0,
+        consideredCount: 0,
+        visits: new Set(),
+        clientNames: new Set(),
+        cat: { chem:0, micro:0, led:0, derm:0, oxy:0, zdpeel:0, hydra:0 }
+      });
+    }
+    const agg = byEmployee.get(emp);
+    if (r['Location']) agg.location = r['Location'];
+    if (r['Classification']) agg.classification = r['Classification'];
+    if (r['Hire Date']) agg.hireDateRaw = r['Hire Date'];
+    agg.rawCount++;
+
+    const canceled = truthy01(r['Canceled']);
+    const noShow = truthy01(r['No Show']);
+    if (canceled) agg.canceledCount++;
+    if (noShow) agg.noShowCount++;
+    if (canceled || noShow) continue;
+
+    agg.serviceHours += parseFloat(r['Service Hours']) || 0;
+    agg.serviceQty += parseFloat(r['Service Qty']) || 0;
+    agg.serviceRevenue += parseFloat(r['Service Revenue']) || 0;
+    agg.consideredCount++;
+    if (truthy01(r['Requested Therapist'])) agg.requestedCount++;
+    if (r['Invoice Number']) agg.visits.add(r['Invoice Number']);
+    if (r['Client Name']) agg.clientNames.add(r['Client Name']);
+
+    const cat = categorize(r['Service Type'], r['Service Description'], r['Service Code']);
+    if (cat) agg.cat[cat]++;
+  }
+
+  const rows = [];
+  for (const agg of byEmployee.values()){
+    rows.push({
+      employee: agg.employee,
+      clinic: clinicAbbrev(agg.location),
+      unmappedClinic: !isKnownClinic(agg.location),
+      zeroHours: agg.serviceHours === 0 && agg.rawCount > 0,
+      classification: agg.classification,
+      hireDate: excelSerialToDate(agg.hireDateRaw),
+      unitsWeek: agg.serviceQty / weeks,
+      serviceHours: agg.serviceHours,
+      serviceRevenue: agg.serviceRevenue,
+      clientVisits: agg.visits.size,
+      uniqueClients: agg.clientNames.size,
+      requestedPct: agg.consideredCount > 0 ? (agg.requestedCount / agg.consideredCount * 100) : null,
+      canceledCount: agg.canceledCount,
+      noShowCount: agg.noShowCount,
+      chem: agg.cat.chem, micro: agg.cat.micro, led: agg.cat.led,
+      derm: agg.cat.derm, oxy: agg.cat.oxy, zdpeel: agg.cat.zdpeel, hydra: agg.cat.hydra
+    });
+  }
+
+  const clinicOrder = { AV:0, LF:1, LN:2, MVS:3 };
+  rows.sort((a,b) => {
+    const co = (clinicOrder[a.clinic] ?? 99) - (clinicOrder[b.clinic] ?? 99);
+    if (co !== 0) return co;
+    return a.employee.localeCompare(b.employee);
+  });
+
+  return { rows, weeks, globalMin, globalMax };
+}
+
+function computeDataQuality(activeFiles, allRecords, rows){
+  const warnings = [];
+
+  for (let i = 0; i < activeFiles.length; i++){
+    for (let j = i + 1; j < activeFiles.length; j++){
+      const a = activeFiles[i], b = activeFiles[j];
+      if (a.min && a.max && b.min && b.max && a.min <= b.max && b.min <= a.max){
+        warnings.push('"' + a.name + '" and "' + b.name + '" have overlapping dates (' +
+          a.min.toLocaleDateString() + '–' + a.max.toLocaleDateString() + ' vs ' +
+          b.min.toLocaleDateString() + '–' + b.max.toLocaleDateString() + ') — totals may double-count shared days.');
+      }
+    }
+  }
+
+  const seen = new Map();
+  for (const r of allRecords){
+    const key = [r['Employee'], r['Invoice Number'], r['Service Code'], r['Service Date'], r['Service Qty']].join('|');
+    seen.set(key, (seen.get(key) || 0) + 1);
+  }
+  let dupCount = 0;
+  seen.forEach(c => { if (c > 1) dupCount += c - 1; });
+  if (dupCount > 0) warnings.push(dupCount + ' duplicate service line(s) found across the loaded files (same employee, invoice, service code, date, and qty).');
+
+  const unmapped = rows.filter(r => r.unmappedClinic && r.clinic).map(r => r.employee);
+  if (unmapped.length) warnings.push('Unrecognized clinic location for: ' + unmapped.join(', ') + ' (abbreviation guessed from the location name — add it to CLINIC_MAP if it should be recognized).');
+
+  const zeroHrs = rows.filter(r => r.zeroHours).map(r => r.employee);
+  if (zeroHrs.length) warnings.push('0 recorded hours for: ' + zeroHrs.join(', ') + ' (their lines were all canceled/no-show, or excluded).');
+
+  return warnings;
+}
+
+function renderDataQuality(warnings){
+  const panel = document.getElementById('dqPanel');
+  if (!warnings.length){ panel.style.display = 'none'; panel.innerHTML = ''; return; }
+  panel.style.display = 'block';
+  panel.innerHTML = '<b>Data quality checks</b><ul>' + warnings.map(w => '<li>' + escapeHtml(w) + '</li>').join('') + '</ul>';
+}
+
+/* ---------------- Table rendering ---------------- */
+
+const COLUMNS = [
+  {key:'employee', label:'Employee', cls:'name'},
+  {key:'clinic', label:'Clinic', cls:'clinic'},
+  {key:'classification', label:'Role', computed:true, cls:'left'},
+  {key:'hireDate', label:'Hire Date', computed:true, cls:'left', formatter: fmtDate},
+  {key:'unitsWeek', label:'Units/Week', computed:true, summable:true, dec:2},
+  {key:'serviceHours', label:'Total Service Hours', computed:true, summable:true, dec:2},
+  {key:'serviceRevenue', label:'Service Revenue', computed:true, summable:true, formatter: fmtCurrency},
+  {key:'clientVisits', label:'Client Visits', computed:true, summable:true},
+  {key:'uniqueClients', label:'Unique Clients', computed:true, summable:true},
+  {key:'requestedPct', label:'Requested %', computed:true, formatter: fmtPercent},
+  {key:'canceledCount', label:'Canceled', computed:true, summable:true},
+  {key:'noShowCount', label:'No Show', computed:true, summable:true},
+  {key:'chem', label:'CHEM', grp:'enh', computed:true, summable:true},
+  {key:'micro', label:'MICRO', grp:'enh', computed:true, summable:true},
+  {key:'led', label:'LED', grp:'enh', computed:true, summable:true},
+  {key:'derm', label:'DERM', grp:'enh', computed:true, summable:true},
+  {key:'oxy', label:'OXY', grp:'enh', computed:true, summable:true},
+  {key:'zdpeel', label:'ZDPEEL', grp:'enh', computed:true, summable:true},
+  {key:'hydra', label:'HYDRA', grp:'enh', computed:true, summable:true}
+];
+
+function fmt(v, dec){
+  if (v === undefined || v === null || v === '') return '';
+  if (dec === undefined) return String(v);
+  const n = Number(v);
+  if (!isFinite(n)) return '';
+  let s = n.toFixed(dec);
+  if (dec > 0) s = s.replace(/\.?0+$/, '');
+  return s;
+}
+
+function fmtDate(v){
+  if (!v) return '';
+  return v.toLocaleDateString();
+}
+
+function fmtPercent(v){
+  if (v === undefined || v === null || v === '' || !isFinite(v)) return '';
+  return fmt(v, 1) + '%';
+}
+
+function fmtCurrency(v){
+  if (v === undefined || v === null || v === '') return '';
+  const n = Number(v);
+  if (!isFinite(n)) return '';
+  return '$' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+const sortState = { key: null, direction: 'asc' };
+let lastRows = [];
+let lastAggregatedRows = [];
+let lastAllRecords = [];
+
+const filterState = { search: '', clinics: new Set() };
+const knownClinics = new Set();
+
+function applyFilter(rows){
+  const search = filterState.search.trim().toLowerCase();
+  return rows.filter(r => {
+    if (filterState.clinics.size && r.clinic && !filterState.clinics.has(r.clinic)) return false;
+    if (search && !r.employee.toLowerCase().includes(search)) return false;
+    return true;
+  });
+}
+
+function updateClinicFilterOptions(rows){
+  const codes = Array.from(new Set(rows.map(r => r.clinic).filter(Boolean))).sort();
+  for (const c of codes){
+    if (!knownClinics.has(c)){ knownClinics.add(c); filterState.clinics.add(c); }
+  }
+  const el = document.getElementById('clinicFilters');
+  el.innerHTML = '';
+  for (const c of codes){
+    const label = document.createElement('label');
+    label.className = 'clinic-chk';
+    const chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.checked = filterState.clinics.has(c);
+    chk.addEventListener('change', () => {
+      if (chk.checked) filterState.clinics.add(c); else filterState.clinics.delete(c);
+      renderTable(applyFilter(lastAggregatedRows));
+    });
+    label.appendChild(chk);
+    label.appendChild(document.createTextNode(' ' + c));
+    el.appendChild(label);
+  }
+}
+
+function sortRows(rows){
+  if (!sortState.key) return rows;
+  const key = sortState.key;
+  const dir = sortState.direction === 'asc' ? 1 : -1;
+  return rows.slice().sort((a, b) => {
+    const av = a[key], bv = b[key];
+    const aBlank = av === undefined || av === null || av === '';
+    const bBlank = bv === undefined || bv === null || bv === '';
+    if (aBlank && bBlank) return 0;
+    if (aBlank) return 1;
+    if (bBlank) return -1;
+    if (av instanceof Date && bv instanceof Date) return dir * (av - bv);
+    if (typeof av === 'number' && typeof bv === 'number') return dir * (av - bv);
+    return dir * String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: 'base' });
+  });
+}
+
+function handleSort(key){
+  if (sortState.key === key){
+    sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortState.key = key;
+    sortState.direction = 'asc';
+  }
+  renderTable(lastRows);
+}
+
+function renderTable(rows){
+  lastRows = rows;
+  const table = document.getElementById('mainTable');
+  table.innerHTML = '';
+
+  if (!rows.length){
+    table.innerHTML = '<tr><td class="empty-state">Drop in report files to build the table.</td></tr>';
+    return;
+  }
+
+  const sortedRows = sortRows(rows);
+
+  const thead = document.createElement('tr');
+  for (const c of COLUMNS){
+    const th = document.createElement('th');
+    th.textContent = c.label + (sortState.key === c.key ? (sortState.direction === 'asc' ? ' ▲' : ' ▼') : '');
+    if (c.cls) th.className = c.cls;
+    if (c.grp) th.classList.add('grp-' + c.grp);
+    th.classList.add('sortable');
+    th.addEventListener('click', () => handleSort(c.key));
+    thead.appendChild(th);
+  }
+  table.appendChild(thead);
+
+  const totals = {};
+  for (const c of COLUMNS) if (c.summable) totals[c.key] = 0;
+
+  for (const row of sortedRows){
+    const tr = document.createElement('tr');
+    tr.className = row.clinic || '';
+    for (const c of COLUMNS){
+      const td = document.createElement('td');
+      if (c.cls) td.className = c.cls;
+      if (c.grp) td.classList.add('grp-' + c.grp);
+      let val = row[c.key];
+      if (c.key === 'employee'){
+        td.textContent = row.employee;
+        td.classList.add('emp-link');
+        td.title = row.employee + ' — click to see raw service lines';
+        td.addEventListener('click', () => openEmployeeModal(row.employee));
+      }
+      else if (c.key === 'clinic'){ td.textContent = row.clinic; }
+      else if (c.computed){
+        td.textContent = c.formatter ? c.formatter(val) : fmt(val, c.dec);
+        td.classList.add('computed');
+        if (c.summable && typeof val === 'number') totals[c.key] = (totals[c.key]||0) + val;
+      }
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+
+  const totalTr = document.createElement('tr');
+  totalTr.className = 'totals';
+  for (const c of COLUMNS){
+    const td = document.createElement('td');
+    if (c.cls) td.className = c.cls;
+    if (c.key === 'employee'){ td.textContent = 'Totals'; }
+    else if (c.key === 'clinic'){ td.textContent = ''; }
+    else if (c.computed && c.summable){ td.textContent = c.formatter ? c.formatter(totals[c.key]) : fmt(totals[c.key], c.dec); }
+    totalTr.appendChild(td);
+  }
+  table.appendChild(totalTr);
+}
+
+/* ---------------- Employee drill-down modal ---------------- */
+
+function employeeHoursByFile(employeeName){
+  return state.files
+    .filter(f => f.active !== false)
+    .map(f => {
+      let hours = 0;
+      for (const r of f.records){
+        if (resolveEmployeeName(r['Employee']) !== employeeName) continue;
+        if (truthy01(r['Canceled']) || truthy01(r['No Show'])) continue;
+        hours += parseFloat(r['Service Hours']) || 0;
+      }
+      return { label: f.name, min: f.min, max: f.max, hours };
+    })
+    .sort((a, b) => (a.min && b.min) ? a.min - b.min : 0);
+}
+
+function buildBarChartSvg(periods){
+  if (!periods.length) return '<div class="chart-empty">No period data.</div>';
+  const w = 640, h = 150, padL = 30, padB = 26, padT = 16, padR = 10;
+  const maxVal = Math.max(1, ...periods.map(p => p.hours));
+  const barW = (w - padL - padR) / periods.length;
+  let bars = '';
+  let labels = '';
+  periods.forEach((p, i) => {
+    const barH = (p.hours / maxVal) * (h - padT - padB);
+    const x = padL + i * barW + barW * 0.15;
+    const bw = barW * 0.7;
+    const y = h - padB - barH;
+    bars += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + Math.max(barH,0).toFixed(1) + '" fill="#5b5b8c" rx="2"></rect>';
+    bars += '<text x="' + (x + bw/2).toFixed(1) + '" y="' + Math.max(y-4,10).toFixed(1) + '" font-size="10" text-anchor="middle" fill="#333">' + p.hours.toFixed(1) + '</text>';
+    const lbl = p.min ? ((p.min.getMonth()+1) + '/' + String(p.min.getFullYear()).slice(2)) : p.label.slice(0,8);
+    labels += '<text x="' + (x + bw/2).toFixed(1) + '" y="' + (h - padB + 14).toFixed(1) + '" font-size="10" text-anchor="middle" fill="#555">' + escapeXml(lbl) + '</text>';
+  });
+  const axis = '<line x1="' + padL + '" y1="' + (h - padB) + '" x2="' + (w - padR) + '" y2="' + (h - padB) + '" stroke="#ccc"></line>';
+  return '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="' + h + '" xmlns="http://www.w3.org/2000/svg">' + axis + bars + labels + '<text x="4" y="12" font-size="10" fill="#777">Service hours per loaded period</text></svg>';
+}
+
+function openEmployeeModal(employeeName){
+  document.getElementById('modalTitle').textContent = employeeName;
+
+  const periods = employeeHoursByFile(employeeName);
+  document.getElementById('modalChart').innerHTML = buildBarChartSvg(periods);
+
+  const records = lastAllRecords
+    .filter(r => resolveEmployeeName(r['Employee']) === employeeName)
+    .slice()
+    .sort((a, b) => {
+      const da = parseServiceDate(a['Service Date']), db = parseServiceDate(b['Service Date']);
+      if (da && db) return da - db;
+      return 0;
+    });
+
+  let html = '<tr><th>Date</th><th>Description</th><th>Type</th><th>Category</th><th>Hours</th><th>Qty</th><th>Revenue</th><th>Requested</th><th>Status</th></tr>';
+  for (const r of records){
+    const cat = categorize(r['Service Type'], r['Service Description'], r['Service Code']);
+    const canceled = truthy01(r['Canceled']);
+    const noShow = truthy01(r['No Show']);
+    const status = canceled ? 'Canceled' : (noShow ? 'No Show' : '');
+    html += '<tr class="' + (canceled || noShow ? 'excluded' : '') + '">' +
+      '<td>' + escapeHtml(r['Service Date'] || '') + '</td>' +
+      '<td>' + escapeHtml(r['Service Description'] || '') + '</td>' +
+      '<td>' + escapeHtml(r['Service Type'] || '') + '</td>' +
+      '<td>' + (cat ? cat.toUpperCase() : '') + '</td>' +
+      '<td>' + escapeHtml(r['Service Hours'] || '') + '</td>' +
+      '<td>' + escapeHtml(r['Service Qty'] || '') + '</td>' +
+      '<td>' + fmtCurrency(parseFloat(r['Service Revenue']) || 0) + '</td>' +
+      '<td>' + (truthy01(r['Requested Therapist']) ? 'Yes' : '') + '</td>' +
+      '<td>' + status + '</td></tr>';
+  }
+  document.getElementById('modalTable').innerHTML = html;
+  document.getElementById('modalOverlay').style.display = 'flex';
+}
+
+function closeModal(){
+  document.getElementById('modalOverlay').style.display = 'none';
+}
+
+/* ---------------- Local persistence (IndexedDB) ---------------- */
+/* Keeps parsed file data in the browser so the table is still here next time this page is opened. */
+
+const DB_NAME = 'EmployeeHoursDB';
+const DB_STORE = 'files';
+let dbPromise = null;
+
+function openDB(){
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
+    if (!('indexedDB' in window)){ reject(new Error('IndexedDB not available in this browser')); return; }
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE, { keyPath: 'name' });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return dbPromise;
+}
+
+async function dbPut(fileObj){
+  try {
+    const db = await openDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).put(fileObj);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch(e){ console.warn('Could not save file to browser storage:', e); }
+}
+
+async function dbDelete(name){
+  try {
+    const db = await openDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).delete(name);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch(e){ console.warn('Could not remove file from browser storage:', e); }
+}
+
+async function dbClearAll(){
+  try {
+    const db = await openDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).clear();
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch(e){ console.warn('Could not clear browser storage:', e); }
+}
+
+async function dbGetAll(){
+  try {
+    const db = await openDB();
+    return await new Promise((resolve, reject) => {
+      const req = db.transaction(DB_STORE, 'readonly').objectStore(DB_STORE).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  } catch(e){ console.warn('Could not read browser storage:', e); return []; }
+}
+
+/* ---------------- App state / UI wiring ---------------- */
+
+const state = { files: [] }; // {name, records, min, max, active}
+
+function setStatus(msg, kind, showSpinner){
+  const el = document.getElementById('status');
+  el.className = kind || '';
+  el.innerHTML = (showSpinner ? '<span class="spinner"></span>' : '') + (msg ? '<span>' + escapeHtml(msg) + '</span>' : '');
+}
+
+function renderFileList(){
+  const el = document.getElementById('fileList');
+  if (!state.files.length){
+    el.innerHTML = '';
+    document.getElementById('legend').style.display = 'none';
+    document.getElementById('filterPanel').style.display = 'none';
+    document.getElementById('rangeInfo').textContent = '';
+    return;
+  }
+  document.getElementById('legend').style.display = 'block';
+  document.getElementById('filterPanel').style.display = 'block';
+  let html = '<table><tr><th>Include</th><th>File</th><th>Lines</th><th>Date range</th><th></th></tr>';
+  for (const f of state.files){
+    const range = f.min && f.max ? (f.min.toLocaleDateString() + ' – ' + f.max.toLocaleDateString()) : '—';
+    const active = f.active !== false;
+    html += '<tr class="' + (active ? '' : 'inactive') + '">' +
+      '<td><input type="checkbox" class="activeChk" data-name="' + escapeHtml(f.name) + '" ' + (active ? 'checked' : '') + '></td>' +
+      '<td>' + escapeHtml(f.name) + '</td>' +
+      '<td>' + f.records.length + ' service lines</td>' +
+      '<td>' + range + '</td>' +
+      '<td class="rm" data-name="' + escapeHtml(f.name) + '">&times; remove</td></tr>';
+  }
+  html += '</table>';
+  el.innerHTML = html;
+  el.querySelectorAll('.activeChk').forEach(chk => {
+    chk.addEventListener('change', async () => {
+      const f = state.files.find(x => x.name === chk.dataset.name);
+      if (!f) return;
+      f.active = chk.checked;
+      await dbPut(f);
+      recompute();
+    });
+  });
+  el.querySelectorAll('.rm').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.files = state.files.filter(f => f.name !== btn.dataset.name);
+      dbDelete(btn.dataset.name);
+      recompute();
+    });
+  });
+}
+
+function recompute(){
+  renderFileList();
+  const activeFiles = state.files.filter(f => f.active !== false);
+  const allRecords = activeFiles.flatMap(f => f.records);
+  lastAllRecords = allRecords;
+  const { rows, weeks, globalMin, globalMax } = aggregate(allRecords);
+  lastAggregatedRows = rows;
+  updateClinicFilterOptions(rows);
+  renderMergePanel();
+  renderTable(applyFilter(rows));
+  renderDataQuality(computeDataQuality(activeFiles, allRecords, rows));
+  const rangeEl = document.getElementById('rangeInfo');
+  if (globalMin && globalMax){
+    rangeEl.textContent = 'Covering ' + globalMin.toLocaleDateString() + ' – ' + globalMax.toLocaleDateString() + ' (' + weeks.toFixed(1) + ' weeks) · ' + rows.length + ' employees';
+  } else {
+    rangeEl.textContent = rows.length ? (rows.length + ' employees') : '';
+  }
+}
+
+async function handleFiles(fileListArg){
+  const files = Array.from(fileListArg).filter(f => /\.xlsx$/i.test(f.name));
+  if (!files.length){
+    setStatus('No .xlsx files found in what was dropped.', 'error');
+    return;
+  }
+  setStatus('Parsing ' + files.length + ' file(s)…', '', true);
+  for (const file of files){
+    if (state.files.some(f => f.name === file.name)) continue;
+    try {
+      const { sheetXml, sharedStringsXml } = await parseInWorker(file);
+      const records = buildRecordsFromSheetXml(sheetXml, sharedStringsXml, file.name);
+      let min=null, max=null;
+      for (const r of records){
+        const d = parseServiceDate(r['Service Date']);
+        if (d){ if(!min||d<min) min=d; if(!max||d>max) max=d; }
+      }
+      const fileObj = { name: file.name, records, min, max, active: true };
+      state.files.push(fileObj);
+      await dbPut(fileObj);
+    } catch (err){
+      setStatus('Error reading "' + file.name + '": ' + err.message, 'error');
+      return;
+    }
+  }
+  setStatus('Loaded ' + state.files.length + ' file(s).', 'ok');
+  recompute();
+}
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+
+dropzone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => { if (e.target.files.length) handleFiles(e.target.files); fileInput.value=''; });
+
+['dragenter','dragover'].forEach(evt => dropzone.addEventListener(evt, e => {
+  e.preventDefault(); dropzone.classList.add('drag');
+}));
+['dragleave','drop'].forEach(evt => dropzone.addEventListener(evt, e => {
+  e.preventDefault(); dropzone.classList.remove('drag');
+}));
+dropzone.addEventListener('drop', e => {
+  if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+});
+
+document.getElementById('clearBtn').addEventListener('click', async () => {
+  if (!state.files.length) return;
+  const ok = confirm('Clear all ' + state.files.length + ' loaded file(s)? This removes everything saved in this browser and can\'t be undone.');
+  if (!ok) return;
+  state.files = [];
+  await dbClearAll();
+  setStatus('');
+  recompute();
+});
+
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  filterState.search = e.target.value;
+  renderTable(applyFilter(lastAggregatedRows));
+});
+
+document.getElementById('exportCsvBtn').addEventListener('click', () => {
+  const rows = applyFilter(lastAggregatedRows);
+  const header = COLUMNS.map(c => c.label);
+  const lines = [header];
+  for (const row of sortRows(rows)){
+    lines.push(COLUMNS.map(c => {
+      if (c.key === 'employee') return row.employee;
+      if (c.key === 'clinic') return row.clinic;
+      if (c.computed) return c.formatter ? c.formatter(row[c.key]) : fmt(row[c.key], c.dec);
+      return '';
+    }));
+  }
+  const csv = lines.map(line => line.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'employee-hours-' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+function csvEscape(v){
+  const s = v === undefined || v === null ? '' : String(v);
+  if (/[",\r\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+  return s;
+}
+
+document.getElementById('saveRulesBtn').addEventListener('click', () => {
+  const inputs = document.querySelectorAll('#rulesGrid input');
+  const newRules = {};
+  inputs.forEach(inp => {
+    newRules[inp.dataset.cat] = inp.value.split(',').map(s => s.trim()).filter(Boolean);
+  });
+  saveCategoryRules(newRules);
+  recompute();
+  setStatus('Category rules updated.', 'ok');
+});
+
+document.getElementById('resetRulesBtn').addEventListener('click', () => {
+  saveCategoryRules(JSON.parse(JSON.stringify(DEFAULT_CATEGORY_RULES)));
+  renderRulesPanel();
+  recompute();
+  setStatus('Category rules reset to defaults.', 'ok');
+});
+
+document.getElementById('mergeBtn').addEventListener('click', () => {
+  const fromInput = document.getElementById('mergeFromInput');
+  const toInput = document.getElementById('mergeToInput');
+  const from = fromInput.value.trim();
+  const to = toInput.value.trim();
+  if (!from || !to){ setStatus('Type both a name to merge and a name to merge it into.', 'error'); return; }
+  if (from === to){ setStatus('Can\'t merge a name into itself.', 'error'); return; }
+  const known = getAllRawEmployeeNames();
+  if (!known.includes(from)){ setStatus('"' + from + '" doesn\'t match a loaded employee name exactly — pick one from the list as you type.', 'error'); return; }
+  if (!known.includes(to)){ setStatus('"' + to + '" doesn\'t match a loaded employee name exactly — pick one from the list as you type.', 'error'); return; }
+  employeeAliases[from] = to;
+  saveEmployeeAliases();
+  fromInput.value = '';
+  toInput.value = '';
+  recompute();
+  setStatus('Merged "' + from + '" into "' + to + '".', 'ok');
+});
+
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'modalOverlay') closeModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
+async function init(){
+  renderRulesPanel();
+  const saved = await dbGetAll();
+  if (saved.length){
+    state.files = saved;
+    setStatus('Restored ' + saved.length + ' file(s) saved in this browser from last time.', 'ok');
+  }
+  recompute();
+}
+
+init();
+
+})();
+</script>
+</body>
+</html>
