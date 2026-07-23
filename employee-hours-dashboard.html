@@ -340,11 +340,12 @@
   .modal{
     background:#fff;
     border-radius:14px;
-    max-width:900px;
+    max-width:1150px;
     width:100%;
     max-height:88vh;
     display:flex;
     flex-direction:column;
+    overflow:hidden;
     box-shadow:0 12px 40px rgba(0,0,0,0.3);
   }
   .modal-header{
@@ -353,37 +354,122 @@
     justify-content:space-between;
     padding:16px 20px;
     border-bottom:1px solid var(--border);
+    flex:0 0 auto;
   }
   .modal-header h2{margin:0;font-size:18px;color:var(--purple-dark);}
   .modal-close{
     background:none;
     border:none;
-    font-size:22px;
+    border-radius:8px;
+    font-size:32px;
     line-height:1;
     cursor:pointer;
     color:#888;
-    padding:4px 8px;
+    padding:6px 14px;
   }
-  .modal-close:hover{color:#222;}
-  #modalChart{padding:14px 20px 0 20px;}
+  .modal-close:hover{color:#222;background:#eee;}
+  #modalChart{padding:4px 20px 0 20px;flex:0 0 auto;}
+  .chart-caption{padding:14px 20px 0 20px;font-size:11px;color:#777;flex:0 0 auto;}
+  .modal-date-filter{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:12px 20px;
+    flex:0 0 auto;
+    font-size:12.5px;
+    color:#444;
+    border-top:1px solid var(--border);
+    border-bottom:1px solid var(--border);
+    background:#fafafd;
+  }
+  .modal-date-filter label{display:flex;align-items:center;gap:6px;}
+  .date-box{
+    display:inline-flex;
+    align-items:center;
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:5px 7px;
+    gap:2px;
+    background:#fff;
+  }
+  .date-box:focus-within{border-color:var(--purple);}
+  .date-box span{color:#999;}
+  .date-box input.date-seg{
+    border:none;
+    outline:none;
+    width:18px;
+    text-align:center;
+    font-size:12.5px;
+    font-family:inherit;
+    padding:0;
+    background:transparent;
+  }
+  .modal-date-filter button{
+    background:#e4e4ee;
+    color:#444;
+    border:none;
+    border-radius:6px;
+    padding:6px 12px;
+    cursor:pointer;
+    font-size:12px;
+  }
+  .modal-date-filter button:hover{background:#d7d7e6;}
+  #modalDateInfo{color:#888;font-style:italic;}
+  #modalClientSearch, #mainClientSearch{
+    padding:6px 8px;
+    border:1px solid var(--border);
+    border-radius:6px;
+    font-size:12.5px;
+    font-family:inherit;
+    min-width:160px;
+  }
   .chart-empty{color:#888;font-size:13px;padding:10px 0;}
   .modal-body{
     padding:14px 20px 20px 20px;
     overflow:auto;
+    min-height:0;
+    flex:1 1 auto;
   }
   table.detail-table{
-    border-collapse:collapse;
+    border-collapse:separate;
+    border-spacing:0;
     width:100%;
     font-size:12px;
+    table-layout:fixed;
   }
   table.detail-table th, table.detail-table td{
     padding:5px 8px;
     border:1px solid #eee;
     text-align:left;
     white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
   }
-  table.detail-table th{background:#f2f2f8;position:sticky;top:0;}
+  table.detail-table th{background:#f2f2f8;}
   table.detail-table tr.excluded td{color:#aaa;font-style:italic;}
+  table.detail-table td:nth-child(2), table.detail-table td:nth-child(4){
+    white-space:normal;
+    overflow:visible;
+    text-overflow:clip;
+    word-break:break-word;
+  }
+  table.detail-table.detail-table-head{flex:0 0 auto;margin:0 20px;width:calc(100% - 40px);}
+  .detail-table-head th{border-bottom-width:2px;}
+  .print-only{display:none;}
+  @media print{
+    body *{visibility:hidden;}
+    .modal-overlay, .modal-overlay *{visibility:visible;}
+    .modal-overlay{position:absolute;inset:auto;top:0;left:0;width:100%;height:auto;background:none;padding:0;display:block !important;}
+    .modal{max-width:100%;max-height:none;box-shadow:none;border-radius:0;overflow:visible;}
+    .modal-close, .chart-caption, #modalChart,
+    .modal-date-filter input, .modal-date-filter button, .modal-date-filter span#modalDateInfo{
+      display:none !important;
+    }
+    .modal-date-filter{border:none;padding:4px 0;}
+    .modal-body{overflow:visible;max-height:none;padding:0;}
+    .detail-table-head{margin:0;width:100%;}
+    .print-only{display:block;padding:8px 0 4px 0;font-size:12px;color:#333;}
+  }
 </style>
 </head>
 <body>
@@ -438,6 +524,26 @@
 
 <div class="panel" id="filterPanel" style="display:none;">
   <div class="filter-row">
+    <label>From
+      <span class="date-box" id="mainDateFromBox">
+        <input type="text" class="date-seg" data-part="mm" maxlength="2" placeholder="MM" inputmode="numeric" autocomplete="off">
+        <span>/</span>
+        <input type="text" class="date-seg" data-part="dd" maxlength="2" placeholder="DD" inputmode="numeric" autocomplete="off">
+        <span>/</span>
+        <input type="text" class="date-seg" data-part="yy" maxlength="2" placeholder="YY" inputmode="numeric" autocomplete="off">
+      </span>
+    </label>
+    <label>To
+      <span class="date-box" id="mainDateToBox">
+        <input type="text" class="date-seg" data-part="mm" maxlength="2" placeholder="MM" inputmode="numeric" autocomplete="off">
+        <span>/</span>
+        <input type="text" class="date-seg" data-part="dd" maxlength="2" placeholder="DD" inputmode="numeric" autocomplete="off">
+        <span>/</span>
+        <input type="text" class="date-seg" data-part="yy" maxlength="2" placeholder="YY" inputmode="numeric" autocomplete="off">
+      </span>
+    </label>
+    <input type="text" id="mainClientSearch" placeholder="Search client name…" autocomplete="off">
+    <button id="mainDateClear" class="secondary">Clear filters</button>
     <input type="text" id="searchInput" placeholder="Search employee name…">
     <div class="clinic-filters" id="clinicFilters"></div>
     <button id="exportCsvBtn">Export CSV</button>
@@ -456,9 +562,51 @@
       <h2 id="modalTitle"></h2>
       <button class="modal-close" id="modalClose">&times;</button>
     </div>
+    <div class="chart-caption">Service hours per loaded period</div>
     <div id="modalChart"></div>
-    <div class="modal-body">
-      <table class="detail-table" id="modalTable"></table>
+    <div class="modal-date-filter">
+      <label>From
+        <span class="date-box" id="modalDateFromBox">
+          <input type="text" class="date-seg" data-part="mm" maxlength="2" placeholder="MM" inputmode="numeric" autocomplete="off">
+          <span>/</span>
+          <input type="text" class="date-seg" data-part="dd" maxlength="2" placeholder="DD" inputmode="numeric" autocomplete="off">
+          <span>/</span>
+          <input type="text" class="date-seg" data-part="yy" maxlength="2" placeholder="YY" inputmode="numeric" autocomplete="off">
+        </span>
+      </label>
+      <label>To
+        <span class="date-box" id="modalDateToBox">
+          <input type="text" class="date-seg" data-part="mm" maxlength="2" placeholder="MM" inputmode="numeric" autocomplete="off">
+          <span>/</span>
+          <input type="text" class="date-seg" data-part="dd" maxlength="2" placeholder="DD" inputmode="numeric" autocomplete="off">
+          <span>/</span>
+          <input type="text" class="date-seg" data-part="yy" maxlength="2" placeholder="YY" inputmode="numeric" autocomplete="off">
+        </span>
+      </label>
+      <input type="text" id="modalClientSearch" placeholder="Search client name…" autocomplete="off">
+      <button id="modalDateClear" class="secondary">Clear filters</button>
+      <button id="modalExportBtn">Export CSV</button>
+      <button id="modalPrintBtn" class="secondary">Print</button>
+      <span id="modalDateInfo"></span>
+    </div>
+    <div id="printSummary" class="print-only"></div>
+    <table class="detail-table detail-table-head">
+      <colgroup>
+        <col style="width:90px"><col style="width:260px"><col style="width:100px"><col style="width:130px">
+        <col style="width:115px"><col style="width:85px"><col style="width:50px"><col style="width:90px">
+        <col style="width:80px"><col style="width:85px">
+      </colgroup>
+      <thead><tr><th>Date</th><th>Description</th><th>Type</th><th>Client</th><th>Massage Hours</th><th>Esti Hours</th><th>Qty</th><th>Revenue</th><th>Requested</th><th>Status</th></tr></thead>
+    </table>
+    <div class="modal-body" id="modalBody">
+      <table class="detail-table" id="modalTable">
+        <colgroup>
+          <col style="width:90px"><col style="width:260px"><col style="width:100px"><col style="width:130px">
+          <col style="width:115px"><col style="width:85px"><col style="width:50px"><col style="width:90px">
+          <col style="width:80px"><col style="width:85px">
+        </colgroup>
+        <tbody id="modalTableBody"></tbody>
+      </table>
     </div>
   </div>
 </div>
@@ -682,6 +830,11 @@ function parseServiceDate(s){
 
 function truthy01(v){
   return v === '1' || v === 1 || (typeof v === 'string' && v.trim() === '1');
+}
+
+function isMassageService(serviceType){
+  const t = (serviceType || '').trim().toLowerCase();
+  return t === 'massage' || t === 'stretch';
 }
 
 function excelSerialToDate(serial){
@@ -1188,7 +1341,7 @@ function employeeHoursByFile(employeeName){
 
 function buildBarChartSvg(periods){
   if (!periods.length) return '<div class="chart-empty">No period data.</div>';
-  const w = 640, h = 150, padL = 30, padB = 26, padT = 16, padR = 10;
+  const w = 640, h = 150, padL = 30, padB = 26, padT = 24, padR = 10;
   const maxVal = Math.max(1, ...periods.map(p => p.hours));
   const barW = (w - padL - padR) / periods.length;
   let bars = '';
@@ -1199,21 +1352,119 @@ function buildBarChartSvg(periods){
     const bw = barW * 0.7;
     const y = h - padB - barH;
     bars += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + Math.max(barH,0).toFixed(1) + '" fill="#5b5b8c" rx="2"></rect>';
-    bars += '<text x="' + (x + bw/2).toFixed(1) + '" y="' + Math.max(y-4,10).toFixed(1) + '" font-size="10" text-anchor="middle" fill="#333">' + p.hours.toFixed(1) + '</text>';
+    bars += '<text x="' + (x + bw/2).toFixed(1) + '" y="' + Math.max(y-6, 12).toFixed(1) + '" font-size="10" text-anchor="middle" fill="#333">' + p.hours.toFixed(1) + '</text>';
     const lbl = p.min ? ((p.min.getMonth()+1) + '/' + String(p.min.getFullYear()).slice(2)) : p.label.slice(0,8);
     labels += '<text x="' + (x + bw/2).toFixed(1) + '" y="' + (h - padB + 14).toFixed(1) + '" font-size="10" text-anchor="middle" fill="#555">' + escapeXml(lbl) + '</text>';
   });
   const axis = '<line x1="' + padL + '" y1="' + (h - padB) + '" x2="' + (w - padR) + '" y2="' + (h - padB) + '" stroke="#ccc"></line>';
-  return '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="' + h + '" xmlns="http://www.w3.org/2000/svg">' + axis + bars + labels + '<text x="4" y="12" font-size="10" fill="#777">Service hours per loaded period</text></svg>';
+  return '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="' + h + '" xmlns="http://www.w3.org/2000/svg">' + axis + bars + labels + '</svg>';
+}
+
+let currentModalRecords = [];
+let currentModalFiltered = [];
+let currentModalEmployeeName = '';
+
+function parseInputDate(value){
+  if (!value) return null;
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{2})$/.exec(value.trim());
+  if (!m) return null;
+  const month = Number(m[1]), day = Number(m[2]), year = 2000 + Number(m[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  return new Date(year, month - 1, day);
+}
+
+function getDateBoxValue(boxEl){
+  const segs = boxEl.querySelectorAll('.date-seg');
+  const mm = segs[0].value, dd = segs[1].value, yy = segs[2].value;
+  if (mm.length === 2 && dd.length === 2 && yy.length === 2) return mm + '/' + dd + '/' + yy;
+  return '';
+}
+
+function clearDateBox(boxEl){
+  boxEl.querySelectorAll('.date-seg').forEach(seg => { seg.value = ''; });
+}
+
+function setupDateBox(boxEl, onChange){
+  const segs = Array.from(boxEl.querySelectorAll('.date-seg'));
+  segs.forEach((seg, i) => {
+    seg.addEventListener('input', () => {
+      seg.value = seg.value.replace(/\D/g, '').slice(0, 2);
+      if (seg.value.length === 2 && i < segs.length - 1) segs[i + 1].focus();
+      onChange();
+    });
+    seg.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && seg.value === '' && i > 0){
+        e.preventDefault();
+        const prev = segs[i - 1];
+        prev.value = prev.value.slice(0, -1);
+        prev.focus();
+        onChange();
+      }
+    });
+  });
+}
+
+function renderModalRows(resetScroll){
+  const fromDate = parseInputDate(getDateBoxValue(document.getElementById('modalDateFromBox')));
+  const toDate = parseInputDate(getDateBoxValue(document.getElementById('modalDateToBox')));
+  const clientSearch = document.getElementById('modalClientSearch').value.trim().toLowerCase();
+
+  const filtered = currentModalRecords.filter(r => {
+    const d = parseServiceDate(r['Service Date']);
+    if (fromDate && (!d || d < fromDate)) return false;
+    if (toDate && (!d || d > toDate)) return false;
+    if (clientSearch && !(r['Client Name'] || '').toLowerCase().includes(clientSearch)) return false;
+    return true;
+  });
+
+  let bodyHtml = '';
+  for (const r of filtered){
+    const canceled = truthy01(r['Canceled']);
+    const noShow = truthy01(r['No Show']);
+    const status = canceled ? 'Canceled' : (noShow ? 'No Show' : 'Completed');
+    const hoursVal = parseFloat(r['Service Hours']) || 0;
+    const massage = isMassageService(r['Service Type']);
+    const massageHours = (massage && hoursVal) ? fmt(hoursVal, 2) : '';
+    const estiHours = (!massage && hoursVal) ? fmt(hoursVal, 2) : '';
+    bodyHtml += '<tr class="' + (canceled || noShow ? 'excluded' : '') + '">' +
+      '<td>' + escapeHtml(r['Service Date'] || '') + '</td>' +
+      '<td>' + escapeHtml(r['Service Description'] || '') + '</td>' +
+      '<td>' + escapeHtml(r['Service Type'] || '') + '</td>' +
+      '<td>' + escapeHtml(r['Client Name'] || '') + '</td>' +
+      '<td>' + massageHours + '</td>' +
+      '<td>' + estiHours + '</td>' +
+      '<td>' + escapeHtml(r['Service Qty'] || '') + '</td>' +
+      '<td>' + fmtCurrency(parseFloat(r['Service Revenue']) || 0) + '</td>' +
+      '<td>' + (truthy01(r['Requested Therapist']) ? 'Yes' : 'No') + '</td>' +
+      '<td>' + status + '</td></tr>';
+  }
+  document.getElementById('modalTableBody').innerHTML = bodyHtml ||
+    '<tr><td colspan="10" style="text-align:center;color:#888;padding:20px;">No service lines in this date range.</td></tr>';
+
+  currentModalFiltered = filtered;
+
+  const infoEl = document.getElementById('modalDateInfo');
+  infoEl.textContent = (fromDate || toDate || clientSearch) ? (filtered.length + ' of ' + currentModalRecords.length + ' lines shown') : '';
+
+  const filterBits = [];
+  if (fromDate || toDate) filterBits.push('Dates: ' + (getDateBoxValue(document.getElementById('modalDateFromBox')) || 'earliest') + ' – ' + (getDateBoxValue(document.getElementById('modalDateToBox')) || 'latest'));
+  if (clientSearch) filterBits.push('Client contains "' + document.getElementById('modalClientSearch').value.trim() + '"');
+  document.getElementById('printSummary').textContent = currentModalEmployeeName + ' — ' + filtered.length + ' service line(s)' + (filterBits.length ? ' (' + filterBits.join('; ') + ')' : '') + ' — printed ' + new Date().toLocaleDateString();
+
+  if (resetScroll){
+    const apply = () => { document.getElementById('modalBody').scrollTop = 0; };
+    requestAnimationFrame(apply);
+  }
 }
 
 function openEmployeeModal(employeeName){
   document.getElementById('modalTitle').textContent = employeeName;
+  currentModalEmployeeName = employeeName;
 
   const periods = employeeHoursByFile(employeeName);
   document.getElementById('modalChart').innerHTML = buildBarChartSvg(periods);
 
-  const records = lastAllRecords
+  currentModalRecords = lastAllRecords
     .filter(r => resolveEmployeeName(r['Employee']) === employeeName)
     .slice()
     .sort((a, b) => {
@@ -1222,25 +1473,13 @@ function openEmployeeModal(employeeName){
       return 0;
     });
 
-  let html = '<tr><th>Date</th><th>Description</th><th>Type</th><th>Category</th><th>Hours</th><th>Qty</th><th>Revenue</th><th>Requested</th><th>Status</th></tr>';
-  for (const r of records){
-    const cat = categorize(r['Service Type'], r['Service Description'], r['Service Code']);
-    const canceled = truthy01(r['Canceled']);
-    const noShow = truthy01(r['No Show']);
-    const status = canceled ? 'Canceled' : (noShow ? 'No Show' : '');
-    html += '<tr class="' + (canceled || noShow ? 'excluded' : '') + '">' +
-      '<td>' + escapeHtml(r['Service Date'] || '') + '</td>' +
-      '<td>' + escapeHtml(r['Service Description'] || '') + '</td>' +
-      '<td>' + escapeHtml(r['Service Type'] || '') + '</td>' +
-      '<td>' + (cat ? cat.toUpperCase() : '') + '</td>' +
-      '<td>' + escapeHtml(r['Service Hours'] || '') + '</td>' +
-      '<td>' + escapeHtml(r['Service Qty'] || '') + '</td>' +
-      '<td>' + fmtCurrency(parseFloat(r['Service Revenue']) || 0) + '</td>' +
-      '<td>' + (truthy01(r['Requested Therapist']) ? 'Yes' : '') + '</td>' +
-      '<td>' + status + '</td></tr>';
-  }
-  document.getElementById('modalTable').innerHTML = html;
+  clearDateBox(document.getElementById('modalDateFromBox'));
+  clearDateBox(document.getElementById('modalDateToBox'));
+  document.getElementById('modalClientSearch').value = '';
+  renderModalRows(false);
+
   document.getElementById('modalOverlay').style.display = 'flex';
+  requestAnimationFrame(() => { document.getElementById('modalBody').scrollTop = 0; });
 }
 
 function closeModal(){
@@ -1371,7 +1610,23 @@ function renderFileList(){
 function recompute(){
   renderFileList();
   const activeFiles = state.files.filter(f => f.active !== false);
-  const allRecords = activeFiles.flatMap(f => f.records);
+  let allRecords = activeFiles.flatMap(f => f.records);
+
+  const mainFrom = parseInputDate(getDateBoxValue(document.getElementById('mainDateFromBox')));
+  const mainTo = parseInputDate(getDateBoxValue(document.getElementById('mainDateToBox')));
+  const mainClient = document.getElementById('mainClientSearch').value.trim().toLowerCase();
+  const dateFilterActive = !!(mainFrom || mainTo);
+  const clientFilterActive = !!mainClient;
+  if (dateFilterActive || clientFilterActive){
+    allRecords = allRecords.filter(r => {
+      const d = parseServiceDate(r['Service Date']);
+      if (mainFrom && (!d || d < mainFrom)) return false;
+      if (mainTo && (!d || d > mainTo)) return false;
+      if (mainClient && !(r['Client Name'] || '').toLowerCase().includes(mainClient)) return false;
+      return true;
+    });
+  }
+
   lastAllRecords = allRecords;
   const { rows, weeks, globalMin, globalMax } = aggregate(allRecords);
   lastAggregatedRows = rows;
@@ -1380,8 +1635,12 @@ function recompute(){
   renderTable(applyFilter(rows));
   renderDataQuality(computeDataQuality(activeFiles, allRecords, rows));
   const rangeEl = document.getElementById('rangeInfo');
+  const filterActive = dateFilterActive || clientFilterActive;
+  const clientNote = clientFilterActive ? (' for client "' + document.getElementById('mainClientSearch').value.trim() + '"') : '';
   if (globalMin && globalMax){
-    rangeEl.textContent = 'Covering ' + globalMin.toLocaleDateString() + ' – ' + globalMax.toLocaleDateString() + ' (' + weeks.toFixed(1) + ' weeks) · ' + rows.length + ' employees';
+    rangeEl.textContent = (filterActive ? 'Filtered to ' : 'Covering ') + globalMin.toLocaleDateString() + ' – ' + globalMax.toLocaleDateString() + clientNote + ' (' + weeks.toFixed(1) + ' weeks) · ' + rows.length + ' employees';
+  } else if (filterActive){
+    rangeEl.textContent = 'No service lines match this filter' + clientNote;
   } else {
     rangeEl.textContent = rows.length ? (rows.length + ' employees') : '';
   }
@@ -1511,6 +1770,64 @@ document.getElementById('mergeBtn').addEventListener('click', () => {
   toInput.value = '';
   recompute();
   setStatus('Merged "' + from + '" into "' + to + '".', 'ok');
+});
+
+setupDateBox(document.getElementById('modalDateFromBox'), () => renderModalRows(true));
+setupDateBox(document.getElementById('modalDateToBox'), () => renderModalRows(true));
+document.getElementById('modalClientSearch').addEventListener('input', () => renderModalRows(true));
+document.getElementById('modalDateClear').addEventListener('click', () => {
+  clearDateBox(document.getElementById('modalDateFromBox'));
+  clearDateBox(document.getElementById('modalDateToBox'));
+  document.getElementById('modalClientSearch').value = '';
+  renderModalRows(true);
+});
+
+document.getElementById('modalExportBtn').addEventListener('click', () => {
+  const header = ['Date','Description','Type','Client','Massage Hours','Esti Hours','Qty','Revenue','Requested','Status'];
+  const lines = [header];
+  for (const r of currentModalFiltered){
+    const canceled = truthy01(r['Canceled']);
+    const noShow = truthy01(r['No Show']);
+    const status = canceled ? 'Canceled' : (noShow ? 'No Show' : 'Completed');
+    const hoursVal = parseFloat(r['Service Hours']) || 0;
+    const massage = isMassageService(r['Service Type']);
+    lines.push([
+      r['Service Date'] || '',
+      r['Service Description'] || '',
+      r['Service Type'] || '',
+      r['Client Name'] || '',
+      (massage && hoursVal) ? fmt(hoursVal, 2) : '',
+      (!massage && hoursVal) ? fmt(hoursVal, 2) : '',
+      r['Service Qty'] || '',
+      fmtCurrency(parseFloat(r['Service Revenue']) || 0),
+      truthy01(r['Requested Therapist']) ? 'Yes' : 'No',
+      status
+    ]);
+  }
+  const csv = lines.map(line => line.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = currentModalEmployeeName.replace(/[^a-z0-9]+/gi, '-') + '-' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('modalPrintBtn').addEventListener('click', () => {
+  window.print();
+});
+
+setupDateBox(document.getElementById('mainDateFromBox'), () => recompute());
+setupDateBox(document.getElementById('mainDateToBox'), () => recompute());
+document.getElementById('mainClientSearch').addEventListener('input', () => recompute());
+document.getElementById('mainDateClear').addEventListener('click', () => {
+  clearDateBox(document.getElementById('mainDateFromBox'));
+  clearDateBox(document.getElementById('mainDateToBox'));
+  document.getElementById('mainClientSearch').value = '';
+  recompute();
 });
 
 document.getElementById('modalClose').addEventListener('click', closeModal);
