@@ -393,6 +393,7 @@
     background:#fff;
   }
   .date-box:focus-within{border-color:var(--purple);}
+  .date-box.adjusted{border-color:#b8860b;background:#fdf6e3;}
   .date-box span{color:#999;}
   .date-box input.date-seg{
     border:none;
@@ -1456,7 +1457,12 @@ function parseInputDate(value){
   if (!m) return null;
   const month = Number(m[1]), day = Number(m[2]), year = 2000 + Number(m[3]);
   if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-  return new Date(year, month - 1, day);
+  // JS silently rolls an invalid day-of-month over into the NEXT month (e.g. Apr 31 -> May 1),
+  // which would silently widen the range past what was typed. Clamp to the last real day of
+  // the typed month instead (e.g. Apr 31 -> Apr 30).
+  const lastDayOfMonth = new Date(year, month, 0).getDate();
+  const clampedDay = Math.min(day, lastDayOfMonth);
+  return new Date(year, month - 1, clampedDay);
 }
 
 function getDateBoxValue(boxEl){
@@ -1464,6 +1470,26 @@ function getDateBoxValue(boxEl){
   const mm = segs[0].value, dd = segs[1].value, yy = segs[2].value;
   if (mm.length === 2 && dd.length === 2 && yy.length === 2) return mm + '/' + dd + '/' + yy;
   return '';
+}
+
+function markDateBoxValidity(boxEl, parsedDate){
+  const segs = boxEl.querySelectorAll('.date-seg');
+  const ddSeg = segs[1];
+  if (!parsedDate || ddSeg.value.length !== 2){
+    boxEl.classList.remove('adjusted');
+    boxEl.title = '';
+    return;
+  }
+  const typedDay = Number(ddSeg.value);
+  const actualDay = parsedDate.getDate();
+  if (typedDay !== actualDay){
+    ddSeg.value = String(actualDay).padStart(2, '0');
+    boxEl.classList.add('adjusted');
+    boxEl.title = 'Day ' + typedDay + ' doesn\'t exist in that month — adjusted to the last day (' + actualDay + ').';
+  } else {
+    boxEl.classList.remove('adjusted');
+    boxEl.title = '';
+  }
 }
 
 function clearDateBox(boxEl){
@@ -1475,6 +1501,11 @@ function setupDateBox(boxEl, onChange){
   segs.forEach((seg, i) => {
     seg.addEventListener('input', () => {
       seg.value = seg.value.replace(/\D/g, '').slice(0, 2);
+      // Months only go up to 12, so a first digit of 2-9 can't be followed by a second
+      // digit (no month is 20-99) — treat it as complete right away, e.g. "2" -> "02".
+      if (seg.dataset.part === 'mm' && seg.value.length === 1 && Number(seg.value) > 1){
+        seg.value = '0' + seg.value;
+      }
       if (seg.value.length === 2 && i < segs.length - 1) segs[i + 1].focus();
       onChange();
     });
@@ -1485,6 +1516,20 @@ function setupDateBox(boxEl, onChange){
         prev.value = prev.value.slice(0, -1);
         prev.focus();
         onChange();
+        return;
+      }
+      if (e.key === 'ArrowRight' && seg.selectionStart === seg.value.length && seg.selectionEnd === seg.value.length && i < segs.length - 1){
+        e.preventDefault();
+        const next = segs[i + 1];
+        next.focus();
+        next.setSelectionRange(0, 0);
+        return;
+      }
+      if (e.key === 'ArrowLeft' && seg.selectionStart === 0 && seg.selectionEnd === 0 && i > 0){
+        e.preventDefault();
+        const prev = segs[i - 1];
+        prev.focus();
+        prev.setSelectionRange(prev.value.length, prev.value.length);
       }
     });
   });
@@ -1493,6 +1538,8 @@ function setupDateBox(boxEl, onChange){
 function renderModalRows(resetScroll){
   const fromDate = parseInputDate(getDateBoxValue(document.getElementById('modalDateFromBox')));
   const toDate = parseInputDate(getDateBoxValue(document.getElementById('modalDateToBox')));
+  markDateBoxValidity(document.getElementById('modalDateFromBox'), fromDate);
+  markDateBoxValidity(document.getElementById('modalDateToBox'), toDate);
   const clientSearch = document.getElementById('modalClientSearch').value.trim().toLowerCase();
 
   const filtered = currentModalRecords.filter(r => {
@@ -1710,6 +1757,8 @@ function recompute(){
 
   const mainFrom = parseInputDate(getDateBoxValue(document.getElementById('mainDateFromBox')));
   const mainTo = parseInputDate(getDateBoxValue(document.getElementById('mainDateToBox')));
+  markDateBoxValidity(document.getElementById('mainDateFromBox'), mainFrom);
+  markDateBoxValidity(document.getElementById('mainDateToBox'), mainTo);
   const mainClient = document.getElementById('mainClientSearch').value.trim().toLowerCase();
   const dateFilterActive = !!(mainFrom || mainTo);
   const clientFilterActive = !!mainClient;
