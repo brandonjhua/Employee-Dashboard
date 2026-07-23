@@ -356,7 +356,7 @@
     border-bottom:1px solid var(--border);
     flex:0 0 auto;
   }
-  .modal-header h2{margin:0;font-size:18px;color:var(--purple-dark);}
+  .modal-header h2{margin:0;font-size:28px;font-weight:700;color:var(--purple-dark);}
   .modal-close{
     background:none;
     border:none;
@@ -447,7 +447,7 @@
   }
   table.detail-table th{background:#f2f2f8;}
   table.detail-table tr.excluded td{color:#aaa;font-style:italic;}
-  table.detail-table td:nth-child(7), table.detail-table td:nth-child(11), table.detail-table td:nth-child(16){
+  table.detail-table td:nth-child(6), table.detail-table td:nth-child(10), table.detail-table td:nth-child(15){
     white-space:normal;
     overflow:visible;
     text-overflow:clip;
@@ -602,14 +602,14 @@
     <div class="detail-head-wrap" id="modalHeadWrap">
       <table class="detail-table detail-table-head">
         <colgroup>
-          <col style="width:110px"><col style="width:120px"><col style="width:80px"><col style="width:70px">
+          <col style="width:65px"><col style="width:80px"><col style="width:70px">
           <col style="width:90px"><col style="width:90px"><col style="width:140px"><col style="width:110px">
           <col style="width:90px"><col style="width:90px"><col style="width:220px"><col style="width:100px">
           <col style="width:80px"><col style="width:60px"><col style="width:90px"><col style="width:130px">
           <col style="width:90px"><col style="width:70px"><col style="width:70px">
         </colgroup>
         <thead><tr>
-          <th data-key="Location">Location</th><th data-key="Employee">Employee</th><th data-key="Hire Date" data-type="hireDate">Hire Date</th><th data-key="Hire Months" data-type="number">Hire Months</th>
+          <th data-key="Location">Location</th><th data-key="Hire Date" data-type="hireDate">Hire Date</th><th data-key="Hire Months" data-type="number">Hire Months</th>
           <th data-key="Employee Number">Employee #</th><th data-key="Employee Code">Employee Code</th><th data-key="Classification">Classification</th><th data-key="Invoice Number">Invoice #</th>
           <th data-key="Service Date" data-type="serviceDate">Service Date</th><th data-key="Service Code">Service Code</th><th data-key="Service Description">Service Description</th><th data-key="Service Type">Service Type</th>
           <th data-key="Service Hours" data-type="number">Service Hours</th><th data-key="Service Qty" data-type="number">Service Qty</th><th data-key="Service Revenue" data-type="number">Service Revenue</th><th data-key="Client Name">Client Name</th>
@@ -620,7 +620,7 @@
     <div class="modal-body" id="modalBody">
       <table class="detail-table" id="modalTable">
         <colgroup>
-          <col style="width:110px"><col style="width:120px"><col style="width:80px"><col style="width:70px">
+          <col style="width:65px"><col style="width:80px"><col style="width:70px">
           <col style="width:90px"><col style="width:90px"><col style="width:140px"><col style="width:110px">
           <col style="width:90px"><col style="width:90px"><col style="width:220px"><col style="width:100px">
           <col style="width:80px"><col style="width:60px"><col style="width:90px"><col style="width:130px">
@@ -1429,15 +1429,18 @@ function handleModalSort(key){
 function buildModalTotalsRow(records){
   let hours = 0, qty = 0, revenue = 0, requestedCount = 0, canceledCount = 0, noShowCount = 0;
   for (const r of records){
+    const canceled = truthy01(r['Canceled']);
+    const noShow = truthy01(r['No Show']);
+    if (canceled) canceledCount++;
+    if (noShow) noShowCount++;
+    if (canceled || noShow) continue;
     hours += parseFloat(r['Service Hours']) || 0;
     qty += parseFloat(r['Service Qty']) || 0;
     revenue += parseFloat(r['Service Revenue']) || 0;
     if (truthy01(r['Requested Therapist'])) requestedCount++;
-    if (truthy01(r['Canceled'])) canceledCount++;
-    if (truthy01(r['No Show'])) noShowCount++;
   }
   return '<tr class="modal-totals">' +
-    '<td colspan="12" style="text-align:right;">Totals (' + records.length + ' line' + (records.length === 1 ? '' : 's') + '):</td>' +
+    '<td colspan="11" style="text-align:right;">Totals (' + records.length + ' line' + (records.length === 1 ? '' : 's') + '):</td>' +
     '<td>' + fmt(hours, 2) + '</td>' +
     '<td>' + fmt(qty, 2) + '</td>' +
     '<td>' + fmtCurrency(revenue) + '</td>' +
@@ -1507,8 +1510,7 @@ function renderModalRows(resetScroll){
     const canceled = truthy01(r['Canceled']);
     const noShow = truthy01(r['No Show']);
     bodyHtml += '<tr class="' + (canceled || noShow ? 'excluded' : '') + '">' +
-      '<td>' + escapeHtml(r['Location'] || '') + '</td>' +
-      '<td>' + escapeHtml(r['Employee'] || '') + '</td>' +
+      '<td>' + escapeHtml(clinicAbbrev(r['Location'])) + '</td>' +
       '<td>' + fmtDate(excelSerialToDate(r['Hire Date'])) + '</td>' +
       '<td>' + escapeHtml(r['Hire Months'] || '') + '</td>' +
       '<td>' + escapeHtml(r['Employee Number'] || '') + '</td>' +
@@ -1529,7 +1531,7 @@ function renderModalRows(resetScroll){
   }
   document.getElementById('modalTableBody').innerHTML = bodyHtml ?
     (bodyHtml + buildModalTotalsRow(sortedFiltered)) :
-    '<tr><td colspan="19" style="text-align:center;color:#888;padding:20px;">No service lines in this date range.</td></tr>';
+    '<tr><td colspan="18" style="text-align:center;color:#888;padding:20px;">No service lines in this date range.</td></tr>';
 
   currentModalFiltered = sortedFiltered;
 
@@ -1569,7 +1571,11 @@ function openEmployeeModal(employeeName){
   renderModalRows(false);
 
   document.getElementById('modalOverlay').style.display = 'flex';
-  requestAnimationFrame(() => { document.getElementById('modalBody').scrollTop = 0; });
+  requestAnimationFrame(() => {
+    document.getElementById('modalBody').scrollTop = 0;
+    document.getElementById('modalBody').scrollLeft = 0;
+    document.getElementById('modalHeadWrap').scrollLeft = 0;
+  });
 }
 
 function closeModal(){
@@ -1880,14 +1886,13 @@ document.getElementById('modalDateClear').addEventListener('click', () => {
 });
 
 document.getElementById('modalExportBtn').addEventListener('click', () => {
-  const header = ['Location','Employee','Hire Date','Hire Months','Employee Number','Employee Code','Classification','Invoice Number','Service Date','Service Code','Service Description','Service Type','Service Hours','Service Qty','Service Revenue','Client Name','Requested Therapist','Canceled','No Show'];
+  const header = ['Location','Hire Date','Hire Months','Employee Number','Employee Code','Classification','Invoice Number','Service Date','Service Code','Service Description','Service Type','Service Hours','Service Qty','Service Revenue','Client Name','Requested Therapist','Canceled','No Show'];
   const lines = [header];
   for (const r of currentModalFiltered){
     const canceled = truthy01(r['Canceled']);
     const noShow = truthy01(r['No Show']);
     lines.push([
-      r['Location'] || '',
-      r['Employee'] || '',
+      clinicAbbrev(r['Location']),
       fmtDate(excelSerialToDate(r['Hire Date'])),
       r['Hire Months'] || '',
       r['Employee Number'] || '',
