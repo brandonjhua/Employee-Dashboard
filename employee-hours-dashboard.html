@@ -433,7 +433,7 @@
   table.detail-table{
     border-collapse:separate;
     border-spacing:0;
-    width:100%;
+    width:1900px;
     font-size:12px;
     table-layout:fixed;
   }
@@ -447,14 +447,22 @@
   }
   table.detail-table th{background:#f2f2f8;}
   table.detail-table tr.excluded td{color:#aaa;font-style:italic;}
-  table.detail-table td:nth-child(2), table.detail-table td:nth-child(4){
+  table.detail-table td:nth-child(7), table.detail-table td:nth-child(11), table.detail-table td:nth-child(16){
     white-space:normal;
     overflow:visible;
     text-overflow:clip;
     word-break:break-word;
   }
-  table.detail-table.detail-table-head{flex:0 0 auto;margin:0 20px;width:calc(100% - 40px);}
+  .detail-head-wrap{
+    flex:0 0 auto;
+    overflow:hidden;
+    margin:0 20px;
+    border-bottom:2px solid var(--border);
+  }
   .detail-table-head th{border-bottom-width:2px;}
+  .detail-table-head th.sortable{cursor:pointer;user-select:none;}
+  .detail-table-head th.sortable:hover{background:#e4e4f0;}
+  tr.modal-totals td{background:#e8e8f0;font-weight:bold;}
   .print-only{display:none;}
   @media print{
     body *{visibility:hidden;}
@@ -467,7 +475,8 @@
     }
     .modal-date-filter{border:none;padding:4px 0;}
     .modal-body{overflow:visible;max-height:none;padding:0;}
-    .detail-table-head{margin:0;width:100%;}
+    .detail-head-wrap{margin:0;overflow:visible;}
+    table.detail-table{width:100%;}
     .print-only{display:block;padding:8px 0 4px 0;font-size:12px;color:#333;}
   }
 </style>
@@ -590,20 +599,32 @@
       <span id="modalDateInfo"></span>
     </div>
     <div id="printSummary" class="print-only"></div>
-    <table class="detail-table detail-table-head">
-      <colgroup>
-        <col style="width:90px"><col style="width:260px"><col style="width:100px"><col style="width:130px">
-        <col style="width:115px"><col style="width:85px"><col style="width:50px"><col style="width:90px">
-        <col style="width:80px"><col style="width:85px">
-      </colgroup>
-      <thead><tr><th>Date</th><th>Description</th><th>Type</th><th>Client</th><th>Massage Hours</th><th>Esti Hours</th><th>Qty</th><th>Revenue</th><th>Requested</th><th>Status</th></tr></thead>
-    </table>
+    <div class="detail-head-wrap" id="modalHeadWrap">
+      <table class="detail-table detail-table-head">
+        <colgroup>
+          <col style="width:110px"><col style="width:120px"><col style="width:80px"><col style="width:70px">
+          <col style="width:90px"><col style="width:90px"><col style="width:140px"><col style="width:110px">
+          <col style="width:90px"><col style="width:90px"><col style="width:220px"><col style="width:100px">
+          <col style="width:80px"><col style="width:60px"><col style="width:90px"><col style="width:130px">
+          <col style="width:90px"><col style="width:70px"><col style="width:70px">
+        </colgroup>
+        <thead><tr>
+          <th data-key="Location">Location</th><th data-key="Employee">Employee</th><th data-key="Hire Date" data-type="hireDate">Hire Date</th><th data-key="Hire Months" data-type="number">Hire Months</th>
+          <th data-key="Employee Number">Employee #</th><th data-key="Employee Code">Employee Code</th><th data-key="Classification">Classification</th><th data-key="Invoice Number">Invoice #</th>
+          <th data-key="Service Date" data-type="serviceDate">Service Date</th><th data-key="Service Code">Service Code</th><th data-key="Service Description">Service Description</th><th data-key="Service Type">Service Type</th>
+          <th data-key="Service Hours" data-type="number">Service Hours</th><th data-key="Service Qty" data-type="number">Service Qty</th><th data-key="Service Revenue" data-type="number">Service Revenue</th><th data-key="Client Name">Client Name</th>
+          <th data-key="Requested Therapist" data-type="bool">Requested</th><th data-key="Canceled" data-type="bool">Canceled</th><th data-key="No Show" data-type="bool">No Show</th>
+        </tr></thead>
+      </table>
+    </div>
     <div class="modal-body" id="modalBody">
       <table class="detail-table" id="modalTable">
         <colgroup>
-          <col style="width:90px"><col style="width:260px"><col style="width:100px"><col style="width:130px">
-          <col style="width:115px"><col style="width:85px"><col style="width:50px"><col style="width:90px">
-          <col style="width:80px"><col style="width:85px">
+          <col style="width:110px"><col style="width:120px"><col style="width:80px"><col style="width:70px">
+          <col style="width:90px"><col style="width:90px"><col style="width:140px"><col style="width:110px">
+          <col style="width:90px"><col style="width:90px"><col style="width:220px"><col style="width:100px">
+          <col style="width:80px"><col style="width:60px"><col style="width:90px"><col style="width:130px">
+          <col style="width:90px"><col style="width:70px"><col style="width:70px">
         </colgroup>
         <tbody id="modalTableBody"></tbody>
       </table>
@@ -830,11 +851,6 @@ function parseServiceDate(s){
 
 function truthy01(v){
   return v === '1' || v === 1 || (typeof v === 'string' && v.trim() === '1');
-}
-
-function isMassageService(serviceType){
-  const t = (serviceType || '').trim().toLowerCase();
-  return t === 'massage' || t === 'stretch';
 }
 
 function excelSerialToDate(serial){
@@ -1363,6 +1379,73 @@ function buildBarChartSvg(periods){
 let currentModalRecords = [];
 let currentModalFiltered = [];
 let currentModalEmployeeName = '';
+const modalSortState = { key: null, direction: 'asc' };
+
+function getModalSortValue(r, key, type){
+  if (type === 'hireDate') return excelSerialToDate(r[key]);
+  if (type === 'serviceDate') return parseServiceDate(r[key]);
+  if (type === 'number') return parseFloat(r[key]) || 0;
+  if (type === 'bool') return truthy01(r[key]) ? 1 : 0;
+  return (r[key] || '').toString();
+}
+
+function sortModalRecords(records){
+  if (!modalSortState.key) return records;
+  const th = document.querySelector('.detail-table-head th[data-key="' + modalSortState.key.replace(/"/g, '\\"') + '"]');
+  const type = th ? (th.dataset.type || 'text') : 'text';
+  const dir = modalSortState.direction === 'asc' ? 1 : -1;
+  return records.slice().sort((a, b) => {
+    const av = getModalSortValue(a, modalSortState.key, type);
+    const bv = getModalSortValue(b, modalSortState.key, type);
+    const aBlank = av === null || av === undefined || av === '';
+    const bBlank = bv === null || bv === undefined || bv === '';
+    if (aBlank && bBlank) return 0;
+    if (aBlank) return 1;
+    if (bBlank) return -1;
+    if (av instanceof Date && bv instanceof Date) return dir * (av - bv);
+    if (typeof av === 'number' && typeof bv === 'number') return dir * (av - bv);
+    return dir * String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: 'base' });
+  });
+}
+
+function updateModalSortHeaderUI(){
+  document.querySelectorAll('.detail-table-head th[data-key]').forEach(th => {
+    if (!th.dataset.label) th.dataset.label = th.textContent;
+    th.textContent = th.dataset.label + (modalSortState.key === th.dataset.key ? (modalSortState.direction === 'asc' ? ' ▲' : ' ▼') : '');
+  });
+}
+
+function handleModalSort(key){
+  if (modalSortState.key === key){
+    modalSortState.direction = modalSortState.direction === 'asc' ? 'desc' : 'asc';
+  } else {
+    modalSortState.key = key;
+    modalSortState.direction = 'asc';
+  }
+  updateModalSortHeaderUI();
+  renderModalRows(false);
+}
+
+function buildModalTotalsRow(records){
+  let hours = 0, qty = 0, revenue = 0, requestedCount = 0, canceledCount = 0, noShowCount = 0;
+  for (const r of records){
+    hours += parseFloat(r['Service Hours']) || 0;
+    qty += parseFloat(r['Service Qty']) || 0;
+    revenue += parseFloat(r['Service Revenue']) || 0;
+    if (truthy01(r['Requested Therapist'])) requestedCount++;
+    if (truthy01(r['Canceled'])) canceledCount++;
+    if (truthy01(r['No Show'])) noShowCount++;
+  }
+  return '<tr class="modal-totals">' +
+    '<td colspan="12" style="text-align:right;">Totals (' + records.length + ' line' + (records.length === 1 ? '' : 's') + '):</td>' +
+    '<td>' + fmt(hours, 2) + '</td>' +
+    '<td>' + fmt(qty, 2) + '</td>' +
+    '<td>' + fmtCurrency(revenue) + '</td>' +
+    '<td></td>' +
+    '<td>' + requestedCount + '</td>' +
+    '<td>' + canceledCount + '</td>' +
+    '<td>' + noShowCount + '</td></tr>';
+}
 
 function parseInputDate(value){
   if (!value) return null;
@@ -1417,31 +1500,38 @@ function renderModalRows(resetScroll){
     return true;
   });
 
+  const sortedFiltered = sortModalRecords(filtered);
+
   let bodyHtml = '';
-  for (const r of filtered){
+  for (const r of sortedFiltered){
     const canceled = truthy01(r['Canceled']);
     const noShow = truthy01(r['No Show']);
-    const status = canceled ? 'Canceled' : (noShow ? 'No Show' : 'Completed');
-    const hoursVal = parseFloat(r['Service Hours']) || 0;
-    const massage = isMassageService(r['Service Type']);
-    const massageHours = (massage && hoursVal) ? fmt(hoursVal, 2) : '';
-    const estiHours = (!massage && hoursVal) ? fmt(hoursVal, 2) : '';
     bodyHtml += '<tr class="' + (canceled || noShow ? 'excluded' : '') + '">' +
+      '<td>' + escapeHtml(r['Location'] || '') + '</td>' +
+      '<td>' + escapeHtml(r['Employee'] || '') + '</td>' +
+      '<td>' + fmtDate(excelSerialToDate(r['Hire Date'])) + '</td>' +
+      '<td>' + escapeHtml(r['Hire Months'] || '') + '</td>' +
+      '<td>' + escapeHtml(r['Employee Number'] || '') + '</td>' +
+      '<td>' + escapeHtml(r['Employee Code'] || '') + '</td>' +
+      '<td>' + escapeHtml(r['Classification'] || '') + '</td>' +
+      '<td>' + escapeHtml(r['Invoice Number'] || '') + '</td>' +
       '<td>' + escapeHtml(r['Service Date'] || '') + '</td>' +
+      '<td>' + escapeHtml(r['Service Code'] || '') + '</td>' +
       '<td>' + escapeHtml(r['Service Description'] || '') + '</td>' +
       '<td>' + escapeHtml(r['Service Type'] || '') + '</td>' +
-      '<td>' + escapeHtml(r['Client Name'] || '') + '</td>' +
-      '<td>' + massageHours + '</td>' +
-      '<td>' + estiHours + '</td>' +
+      '<td>' + escapeHtml(r['Service Hours'] || '') + '</td>' +
       '<td>' + escapeHtml(r['Service Qty'] || '') + '</td>' +
       '<td>' + fmtCurrency(parseFloat(r['Service Revenue']) || 0) + '</td>' +
+      '<td>' + escapeHtml(r['Client Name'] || '') + '</td>' +
       '<td>' + (truthy01(r['Requested Therapist']) ? 'Yes' : 'No') + '</td>' +
-      '<td>' + status + '</td></tr>';
+      '<td>' + (canceled ? 'Yes' : 'No') + '</td>' +
+      '<td>' + (noShow ? 'Yes' : 'No') + '</td></tr>';
   }
-  document.getElementById('modalTableBody').innerHTML = bodyHtml ||
-    '<tr><td colspan="10" style="text-align:center;color:#888;padding:20px;">No service lines in this date range.</td></tr>';
+  document.getElementById('modalTableBody').innerHTML = bodyHtml ?
+    (bodyHtml + buildModalTotalsRow(sortedFiltered)) :
+    '<tr><td colspan="19" style="text-align:center;color:#888;padding:20px;">No service lines in this date range.</td></tr>';
 
-  currentModalFiltered = filtered;
+  currentModalFiltered = sortedFiltered;
 
   const infoEl = document.getElementById('modalDateInfo');
   infoEl.textContent = (fromDate || toDate || clientSearch) ? (filtered.length + ' of ' + currentModalRecords.length + ' lines shown') : '';
@@ -1775,6 +1865,13 @@ document.getElementById('mergeBtn').addEventListener('click', () => {
 setupDateBox(document.getElementById('modalDateFromBox'), () => renderModalRows(true));
 setupDateBox(document.getElementById('modalDateToBox'), () => renderModalRows(true));
 document.getElementById('modalClientSearch').addEventListener('input', () => renderModalRows(true));
+document.getElementById('modalBody').addEventListener('scroll', (e) => {
+  document.getElementById('modalHeadWrap').scrollLeft = e.target.scrollLeft;
+});
+document.querySelectorAll('.detail-table-head th[data-key]').forEach(th => {
+  th.classList.add('sortable');
+  th.addEventListener('click', () => handleModalSort(th.dataset.key));
+});
 document.getElementById('modalDateClear').addEventListener('click', () => {
   clearDateBox(document.getElementById('modalDateFromBox'));
   clearDateBox(document.getElementById('modalDateToBox'));
@@ -1783,25 +1880,31 @@ document.getElementById('modalDateClear').addEventListener('click', () => {
 });
 
 document.getElementById('modalExportBtn').addEventListener('click', () => {
-  const header = ['Date','Description','Type','Client','Massage Hours','Esti Hours','Qty','Revenue','Requested','Status'];
+  const header = ['Location','Employee','Hire Date','Hire Months','Employee Number','Employee Code','Classification','Invoice Number','Service Date','Service Code','Service Description','Service Type','Service Hours','Service Qty','Service Revenue','Client Name','Requested Therapist','Canceled','No Show'];
   const lines = [header];
   for (const r of currentModalFiltered){
     const canceled = truthy01(r['Canceled']);
     const noShow = truthy01(r['No Show']);
-    const status = canceled ? 'Canceled' : (noShow ? 'No Show' : 'Completed');
-    const hoursVal = parseFloat(r['Service Hours']) || 0;
-    const massage = isMassageService(r['Service Type']);
     lines.push([
+      r['Location'] || '',
+      r['Employee'] || '',
+      fmtDate(excelSerialToDate(r['Hire Date'])),
+      r['Hire Months'] || '',
+      r['Employee Number'] || '',
+      r['Employee Code'] || '',
+      r['Classification'] || '',
+      r['Invoice Number'] || '',
       r['Service Date'] || '',
+      r['Service Code'] || '',
       r['Service Description'] || '',
       r['Service Type'] || '',
-      r['Client Name'] || '',
-      (massage && hoursVal) ? fmt(hoursVal, 2) : '',
-      (!massage && hoursVal) ? fmt(hoursVal, 2) : '',
+      r['Service Hours'] || '',
       r['Service Qty'] || '',
       fmtCurrency(parseFloat(r['Service Revenue']) || 0),
+      r['Client Name'] || '',
       truthy01(r['Requested Therapist']) ? 'Yes' : 'No',
-      status
+      canceled ? 'Yes' : 'No',
+      noShow ? 'Yes' : 'No'
     ]);
   }
   const csv = lines.map(line => line.map(csvEscape).join(',')).join('\r\n');
